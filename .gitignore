@@ -9,3 +9,5 @@ logs/
 *.sqlite-journal
 *.sqlite-shm
 *.sqlite-wal
+
+ui/node_modules/

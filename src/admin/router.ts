@@ -12,6 +12,8 @@ import { applyCors } from "./middleware/cors.js";
 import { withLogging } from "./middleware/logging.js";
 
 import { AdminApiError, McpOptimizerError, NotFoundError } from "../errors.js";
+import { readFileSync, existsSync, statSync } from "node:fs";
+import { join, extname, resolve } from "node:path";
 
 export class AdminRouter {
   constructor(
@@ -52,8 +54,60 @@ export class AdminRouter {
         return await handleCacheRoutes(req, res, this.cacheManager);
       }
 
+      // Раздача статики Web Dashboard (Fallback logic)
+      if (req.method === "GET") {
+        if (this.serveStatic(path, res)) {
+          return;
+        }
+      }
+
       throw new NotFoundError(path);
     }).catch((err) => this.errorHandler(err, res));
+  }
+
+  private serveStatic(urlPath: string, res: ServerResponse): boolean {
+    const basePath = resolve(process.cwd(), "ui", "dist");
+    
+    if (!existsSync(basePath)) return false;
+
+    // Default to index.html for root path or client-side routing
+    let targetPath = join(basePath, urlPath === "/" || urlPath === "" ? "index.html" : urlPath);
+
+    if (existsSync(targetPath) && statSync(targetPath).isDirectory()) {
+        targetPath = join(targetPath, "index.html");
+    }
+
+    if (!existsSync(targetPath)) {
+        // Fallback to index.html for SPA routing
+        const fallbackPath = join(basePath, "index.html");
+        if (existsSync(fallbackPath)) {
+            targetPath = fallbackPath;
+        } else {
+            return false;
+        }
+    }
+
+    const ext = extname(targetPath).toLowerCase();
+    const mimeTypes: Record<string, string> = {
+        ".html": "text/html",
+        ".js": "text/javascript",
+        ".css": "text/css",
+        ".json": "application/json",
+        ".png": "image/png",
+        ".jpg": "image/jpg",
+        ".svg": "image/svg+xml"
+    };
+
+    const contentType = mimeTypes[ext] || "application/octet-stream";
+    
+    try {
+        const content = readFileSync(targetPath);
+        res.writeHead(200, { "Content-Type": contentType });
+        res.end(content);
+        return true;
+    } catch {
+        return false;
+    }
   }
 
   private errorHandler(err: unknown, res: ServerResponse): void {
