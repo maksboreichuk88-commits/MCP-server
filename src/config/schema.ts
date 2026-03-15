@@ -38,6 +38,8 @@ export const CacheConfigSchema = z.object({
   includeMethods: z.array(z.string()).optional(),
   
   methodTtlOverrides: z.record(z.string(), z.number().int().positive()).default({}),
+  alwaysCacheTools: z.array(z.string()).default([]),
+  neverCacheTools: z.array(z.string()).default([]),
 });
 
 export type CacheConfig = z.infer<typeof CacheConfigSchema>;
@@ -153,7 +155,9 @@ export const ProxyConfigSchema = z.object({
     maxResponseBytes: DEFAULT_MAX_RESPONSE_BYTES,
     compress: false,
     excludeMethods: [],
-    methodTtlOverrides: {}
+    methodTtlOverrides: {},
+    alwaysCacheTools: [],
+    neverCacheTools: []
   }),
   target: TargetServerConfigSchema,
   retry: RetryConfigSchema.default({
