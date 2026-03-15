@@ -27,6 +27,7 @@ interface DeferredTargetResponse {
 
 export class ProxyEngine {
   private targetProcess: ChildProcess | null = null;
+  private stdoutBuffer = "";
   private serverId: string;
   private isShuttingDown = false;
 
@@ -46,6 +47,14 @@ export class ProxyEngine {
     setInterval(() => {
       this.interceptor.cleanupStaleRequests(config.timeout.requestMs * 2);
     }, 60000).unref();
+
+    process.on("exit", () => {
+      if (this.targetProcess) {
+        try {
+          this.targetProcess.kill("SIGKILL");
+        } catch { }
+      }
+    });
   }
 
   async start(): Promise<void> {
@@ -186,9 +195,14 @@ export class ProxyEngine {
     });
 
     this.targetProcess.stdout?.on("data", (chunk: Buffer) => {
-      const messages = chunk.toString("utf8").split("\n").filter(m => m.trim().length > 0);
-      
-      for (const msg of messages) {
+      this.stdoutBuffer += chunk.toString("utf8");
+      let newlineIndex;
+      while ((newlineIndex = this.stdoutBuffer.indexOf("\n")) !== -1) {
+        const msg = this.stdoutBuffer.slice(0, newlineIndex).trim();
+        this.stdoutBuffer = this.stdoutBuffer.slice(newlineIndex + 1);
+
+        if (msg.length === 0) continue;
+
         let parsed: unknown;
         try {
            parsed = JSON.parse(msg);
@@ -200,10 +214,8 @@ export class ProxyEngine {
         const { req, isPassthrough } = this.interceptor.processTargetMessage(parsed);
 
         if (isPassthrough) {
-          
           this.sendToClientRaw(parsed);
         } else if (req) {
-          
           const response = parsed as { result?: unknown, error?: { code: number, message: string, data?: unknown } };
           const deferred = this.pendingTargetCalls.get(req.id);
           
@@ -212,7 +224,6 @@ export class ProxyEngine {
             this.interceptor.removePending(req.id);
 
             if (response.error) {
-               
                const errObj = new Error(response.error.message);
                Object.assign(errObj, { rpcCode: response.error.code, data: response.error.data });
                deferred.reject(errObj);
