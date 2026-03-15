@@ -78,12 +78,14 @@ interface CliResult {
   targetArgs: string[];
   configFile?: string;
   verbose?: boolean;
+  adminOnly?: boolean;
 }
 
 function parseCli(args: string[]): CliResult {
   const remaining: string[] = [];
   let configFile: string | undefined;
   let verbose: boolean | undefined;
+  let adminOnly = false;
 
   let i = 0;
   while (i < args.length) {
@@ -93,6 +95,8 @@ function parseCli(args: string[]): CliResult {
       configFile = args[i];
     } else if (arg === "--verbose" || arg === "-v") {
       verbose = true;
+    } else if (arg === "--admin-only") {
+      adminOnly = true;
     } else {
       remaining.push(arg);
     }
@@ -101,14 +105,15 @@ function parseCli(args: string[]): CliResult {
 
   const [targetCommand = "", ...targetArgs] = remaining;
 
-  if (!targetCommand) {
+  if (!targetCommand && !adminOnly) {
     throw new ConfigurationError(
       "Не указана команда целевого MCP-сервера. " +
-      "Использование: mcp-optimizer [--config file] <command> [args...]"
+      "Использование: mcp-optimizer [--config file] <command> [args...]" +
+      "  Или: mcp-optimizer --admin-only --config file (только Admin API без прокси)"
     );
   }
 
-  return { targetCommand, targetArgs, configFile, verbose };
+  return { targetCommand, targetArgs, configFile, verbose, adminOnly };
 }
 
 export function loadConfig(options: LoadConfigOptions): ProxyConfig {
@@ -128,7 +133,7 @@ export function loadConfig(options: LoadConfigOptions): ProxyConfig {
 
   const rawConfig = {
     target: {
-      command: cli.targetCommand,
+      command: cli.targetCommand || "echo",
       args: cli.targetArgs,
     },
     
