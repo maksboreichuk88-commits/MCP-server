@@ -23,7 +23,7 @@ export interface FirewallConfig {
 export function createFirewall(config: FirewallConfig = {}, customRules: FirewallRule[] = []) {
   const allowedPaths = config.allowedPaths || [];
   
-  const defaultDangerousPaths = [
+  const dangerousPaths = [
     /\/etc\//i,
     /\.env(\.|$)/i,
     /\.ssh\//i,
@@ -34,10 +34,6 @@ export function createFirewall(config: FirewallConfig = {}, customRules: Firewal
     /secret/i,
     /private_key/i,
   ];
-
-  const dangerousPaths = defaultDangerousPaths.filter(pattern => {
-    return !allowedPaths.some(allowed => pattern.test(allowed));
-  });
 
   const injectionPatterns = [
     /ignore (previous|all) instructions/i,
@@ -55,8 +51,29 @@ export function createFirewall(config: FirewallConfig = {}, customRules: Firewal
       severity: "block",
       check: (_method, params) => {
         if (!params) return false;
-        const str = JSON.stringify(params);
-        return dangerousPaths.some(p => p.test(str));
+
+        let hasViolation = false;
+
+        function checkStrings(obj: unknown) {
+          if (hasViolation) return;
+          if (typeof obj === "string") {
+            const isDangerous = dangerousPaths.some(p => p.test(obj));
+            if (isDangerous && !allowedPaths.includes(obj)) {
+              hasViolation = true;
+            }
+          } else if (Array.isArray(obj)) {
+            for (const item of obj) {
+              checkStrings(item);
+            }
+          } else if (obj !== null && typeof obj === "object") {
+            for (const val of Object.values(obj)) {
+              checkStrings(val);
+            }
+          }
+        }
+
+        checkStrings(params);
+        return hasViolation;
       }
     },
     {
