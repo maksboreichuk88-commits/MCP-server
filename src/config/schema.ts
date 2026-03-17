@@ -146,6 +146,13 @@ export const TargetServerConfigSchema = z.object({
 
 export type TargetServerConfig = z.infer<typeof TargetServerConfigSchema>;
 
+export const EnterpriseConfigSchema = z.object({
+  licenseKey: z.string().optional(),
+  productId: z.string().optional(),
+});
+
+export type EnterpriseConfig = z.infer<typeof EnterpriseConfigSchema>;
+
 export const ProxyConfigSchema = z.object({
   cache: CacheConfigSchema.default({
     dir: DEFAULT_CACHE_DIR,
@@ -200,6 +207,7 @@ export const ProxyConfigSchema = z.object({
     colorize: true,
     timestamps: true
   }),
+  enterprise: EnterpriseConfigSchema.default({}),
   verbose: z.boolean().default(false),
 });
 

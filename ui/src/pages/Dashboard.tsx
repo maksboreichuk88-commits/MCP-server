@@ -23,7 +23,7 @@ export default function Dashboard() {
           time: now,
           l1Hits: s.cache.l1.hits,
           l2Hits: s.cache.l2.hits,
-          requests: s.totalRequests
+          requests: s.counters?.mcp_total_requests || 0
         };
         const next = [...prev, newPoint];
         return next.length > 20 ? next.slice(-20) : next;
@@ -54,7 +54,7 @@ export default function Dashboard() {
           </h1>
           <p className="text-gray-500 mt-1 flex items-center gap-2">
             <span className="flex w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-            Live Metrics &bull; Uptime: {Math.floor(stats.uptime / 60)}m {stats.uptime % 60}s
+            Live Metrics &bull; Uptime: {Math.floor(stats.uptime_seconds / 60)}m {Math.floor(stats.uptime_seconds % 60)}s
           </p>
         </div>
         <div className="flex gap-4">
@@ -104,9 +104,9 @@ export default function Dashboard() {
             <RefreshCw className="w-4 h-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(stats.totalRequests)}</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(stats.counters?.mcp_total_requests || 0)}</div>
             <p className="text-xs text-gray-500 mt-1">
-               {stats.activeRequests} active &bull; Total processed
+               Total RPC requests processed
             </p>
           </CardContent>
         </Card>
@@ -126,6 +126,51 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* OpenAI Demo Requirements: Specific Metrics Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Core Security & Processing Metrics</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+              <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-800 dark:text-gray-400">
+                <tr>
+                  <th scope="col" className="px-6 py-3 rounded-tl-lg rounded-bl-lg">Metric Name</th>
+                  <th scope="col" className="px-6 py-3 rounded-tr-lg rounded-br-lg text-right">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="bg-white dark:bg-gray-900">
+                  <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                    Total RPC Requests
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    {formatNumber(stats.counters?.mcp_total_requests || 0)}
+                  </td>
+                </tr>
+                <tr className="bg-white dark:bg-gray-900">
+                  <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                    Blocked: Covert tool invocation
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    {formatNumber(stats.counters?.mcp_blocked_covert || 0)}
+                  </td>
+                </tr>
+                <tr className="bg-white dark:bg-gray-900">
+                  <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                    Intercepted: ShadowLeak
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    {formatNumber(stats.counters?.mcp_intercepted_shadowleak || 0)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Charts */}
       <Card>

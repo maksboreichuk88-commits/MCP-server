@@ -20,8 +20,15 @@ import { isPassthroughMessage } from "./passthrough.js";
 import { nowMs, elapsed, hrNow } from "../utils/time.js";
 import { TargetServerError } from "../errors.js";
 import { createFirewall, type FirewallEvaluator } from "../middleware/firewall.js";
+import { createLicenseVerifier } from "../middleware/license-verifier.js";
+import { Pipeline, type MiddlewareContext } from "../middleware/pipeline.js";
+import { RateLimiter } from "../middleware/rate-limiter.js";
+import { withDeduplication } from "../middleware/deduplicator.js";
+import { normalizeRequest } from "../middleware/normalizer.js";
+import { getMetrics } from "../metrics/collector.js";
 
 export function sanitizeShadowLeak(msg: string, data?: unknown): { msg: string; data?: unknown } {
+  let intercepted = false;
   const shadowLeakPatterns = [
     /at\s+.*:\d+:\d+/i, // Stack traces
     /node_modules/i,
@@ -34,6 +41,9 @@ export function sanitizeShadowLeak(msg: string, data?: unknown): { msg: string; 
   const strToTest = JSON.stringify({ msg, data });
   for (const pattern of shadowLeakPatterns) {
     if (pattern.test(strToTest)) {
+      if (!msg.includes("Target server encountered an internal error")) {
+         getMetrics().createCounter("mcp_intercepted_shadowleak", "Intercepted ShadowLeak responses").inc();
+      }
       return { msg: "Target server encountered an internal error.", data: undefined };
     }
   }
@@ -56,7 +66,8 @@ export class ProxyEngine {
   private readonly circuitBreaker: CircuitBreaker;
   private readonly interceptor: ResponseInterceptor;
   private readonly inFlightDeduplicator = new InFlightDeduplicator<unknown>();
-  private readonly firewall: FirewallEvaluator;
+  
+  private readonly pipeline: Pipeline;
 
   private readonly pendingTargetCalls = new Map<string | number, DeferredTargetResponse>();
 
@@ -65,7 +76,46 @@ export class ProxyEngine {
     this.circuitBreaker = new CircuitBreaker(config.circuitBreaker);
     this.interceptor = new ResponseInterceptor();
     this.serverId = buildServerId(config.target.command, config.target.args);
-    this.firewall = createFirewall();
+    
+    this.pipeline = new Pipeline();
+
+    // 1. Нормализация (если требуется)
+    this.pipeline.use(async (ctx, next) => {
+       ctx.message = normalizeRequest(ctx.message);
+       await next();
+    });
+
+    // 2. Базовый Firewall (Fail-Closed)
+    const firewallFn = createFirewall();
+    this.pipeline.use(async (ctx, next) => {
+       const req = ctx.message as any;
+       if (!req || typeof req !== "object") return await next();
+
+       const decision = firewallFn(req.method, req.params);
+       if (decision.blocked) {
+          if (decision.ruleName === "covert_tool_invocation") {
+            getMetrics().createCounter("mcp_blocked_covert", "Blocked Covert tool invocations").inc();
+          }
+          ctx.blocked = true;
+          ctx.blockReason = `[MCP Firewall] Request blocked by rule '${decision.ruleName}': ${decision.reason}`;
+          throw new Error(ctx.blockReason);
+       }
+       await next();
+    });
+
+    // 3. Enterprise License Verifier (Fail-Closed)
+    // Проверка ключа Lemon Squeezy (если ключа нет, запросы будут заблокированы)
+    this.pipeline.use(createLicenseVerifier(
+        config.enterprise.licenseKey,
+        config.enterprise.productId
+    ));
+
+    // 4. Rate Limiter
+    const rateLimiter = new RateLimiter(config.rateLimiter);
+    this.pipeline.use(async (ctx, next) => {
+       rateLimiter.consume(ctx.serverId);
+       await next();
+    });
 
     setInterval(() => {
       this.interceptor.cleanupStaleRequests(config.timeout.requestMs * 2);
@@ -103,14 +153,29 @@ export class ProxyEngine {
 
     const req = message as { jsonrpc: string; id: string | number; method: string; params?: Record<string, unknown> };
 
-    const firewallDecision = this.firewall(req.method, req.params);
-    if (firewallDecision.blocked) {
-      this.sendToClientRaw(buildRpcErrorResponse(
-        req.id,
-        -32001,
-        `[MCP Firewall] Request blocked by rule '${firewallDecision.ruleName}': ${firewallDecision.reason}`
-      ));
-      return;
+    // Увеличиваем общий счетчик запросов
+    getMetrics().createCounter("mcp_total_requests", "Total RPC Requests").inc();
+
+    const ctx: MiddlewareContext = {
+      rawMessage: rawClientMessage,
+      message: req,
+      serverId: this.serverId
+    };
+
+    try {
+       await this.pipeline.execute(ctx);
+    } catch (err) {
+       // Middleware pipeline failed (e.g. Rate Limiter, Firewall, License Verifier)
+       if (ctx.blocked) {
+          let code = -32000;
+          if (err instanceof Error && err.message.includes("Rate Limiter")) code = -32005; // TOO_MANY_REQUESTS equivalent
+          else if (err instanceof Error && err.message.includes("Firewall")) code = -32001;
+          else if (err instanceof Error && err.message.includes("License")) code = -32002; // Enterprise license error
+          
+          const reason = ctx.blockReason || (err instanceof Error ? err.message : "Blocked by proxy middleware");
+          this.sendToClientRaw(buildRpcErrorResponse(req.id, code, reason));
+          return;
+       }
     }
 
     try {
