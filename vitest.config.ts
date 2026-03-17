@@ -7,7 +7,8 @@ export default defineConfig({
       "tests/circuit-breaker.test.ts", 
       "tests/cache-admin.test.ts",
       "src/middleware/__tests__/pipeline.test.ts",
-      "src/proxy/__tests__/shadowleak.test.ts"
+      "src/proxy/__tests__/shadowleak.test.ts",
+      "src/middleware/__tests__/license-verifier.test.ts"
     ],
     coverage: {
       provider: "v8",

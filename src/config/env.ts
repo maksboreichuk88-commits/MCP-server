@@ -61,6 +61,7 @@ export interface EnvConfig {
   };
   logging: {
     level?: string;
+    colorize?: boolean;
   };
   retry: {
     maxRetries?: number;
@@ -76,6 +77,10 @@ export interface EnvConfig {
   circuitBreaker: {
     enabled?: boolean;
     failureThreshold?: number;
+  };
+  enterprise: {
+    licenseKey?: string;
+    productId?: string;
   };
   verbose?: boolean;
 }
@@ -118,6 +123,10 @@ export function readEnvConfig(): EnvConfig {
     circuitBreaker: {
       enabled: envBool(ENV_KEYS.CB_ENABLED),
       failureThreshold: envNumber(ENV_KEYS.CB_FAILURE_THRESHOLD),
+    },
+    enterprise: {
+      licenseKey: envString("ENTERPRISE_LICENSE_KEY"),
+      productId: envString("ENTERPRISE_PRODUCT_ID"),
     },
     verbose: envBool(ENV_KEYS.VERBOSE),
   };
