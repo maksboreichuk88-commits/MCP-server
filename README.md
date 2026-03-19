@@ -17,21 +17,34 @@ A zero-config, vendor-neutral stdio interceptor that enforces a Fail-Closed secu
 ### Pipeline (executed in order, Fail-Closed at every stage)
 
 ```
-stdin → [Zod Validation] → [Firewall] → [Rate Limiter] → Target MCP Server
-                                                              │
-stdout ← [ShadowLeak Sanitiser] ← [L1/L2 Cache] ←──────────┘
+stdin → [Multi-tenant Router] → [Zod Validation] → [Firewall & Heuristics] → [Rate Limiter] → Target MCP Server
+                                                                                                         │
+stdout ←───────────────── [ShadowLeak Sanitiser & SIEM Exporter] ← [L1/L2 Cache] ←───────────────────────┘
 ```
 
 | Stage | What it blocks |
 |---|---|
+| **Multi-tenant Router** | Dynamically routes requests to specific isolating firewall/rate-limiting profiles based on agent identity |
 | **Zod Validation** | Malformed JSON-RPC payloads, oversized requests (> 256 KB) |
-| **Firewall** | Path traversal (`/etc/`, `.env`, `.ssh/`), prompt-injection patterns, covert tool invocation (Cross-Tool Hijacking), dangerous tool names (`exec`, `eval`, `shell`) |
-| **Rate Limiter** | Burst floods from a single client session |
+| **Stateless Firewall** | Path traversal (`/etc/`, `.env`, `.ssh/`), prompt-injection patterns, covert tool invocation, dangerous tool names (`exec`, `eval`, `shell`) |
+| **Heuristic Engine** | Dynamically scores payloads based on string entropy (obfuscated base64), nesting depth anomalies, and injection keyword density |
+| **Rate Limiter** | Burst floods from a single client session (configurable per tenant) |
 | **ShadowLeak Sanitiser** | Stack traces, filesystem paths, API tokens in outbound error envelopes — zero-click exfiltration vectors |
+| **SIEM Exporter** | Streams all interception and firewall blocking events natively in CEF or SYSLOG formats |
 | **Circuit Breaker** | Cascade failures when the target server is unavailable |
 | **L1 + L2 Cache** | LRU in-memory (fast) + SQLite (persistent). Keyed by SHA-256 of `(server + method + params)` |
 
 **Fail-Closed guarantee:** any middleware fault terminates the request with a structured JSON-RPC error. There is no pass-through fallback.
+
+---
+
+## Advanced Enterprise Features
+
+While strictly model-agnostic and Open Source, `mcp-proxy-firewall` provides massive scalable features for enterprise identity, risk management, and compliance:
+
+1. **Multi-tenant Gateway:** By intercepting the `initialize` handshake, the proxy assigns agent identities (`clientInfo.name`) to independent security profiles. A single proxy can enforce strict heuristic thresholds for one agent while applying relaxed caching rules for another.
+2. **Heuristic Engine Analyzer:** Goes beyond static string matching. Calculates Shannon entropy of strings (detecting concealed payloads), restricts deep-nested JSON anomalies, and measures keyword density to probabilistically score attack vectors.
+3. **SIEM Integration:** Native `CEF` (Common Event Format) and `SYSLOG` streaming for Splunk, Datadog, or Elastic. Tracks explicit `Firewall Block`, `Heuristic Anomaly`, and `ShadowLeak Interception` events.
 
 ---
 
