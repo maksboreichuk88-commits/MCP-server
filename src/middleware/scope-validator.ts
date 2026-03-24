@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { auditLogWithSIEM } from '../utils/auditLogger.js';
 
 interface ToolEntry {
   name?: string;
@@ -15,15 +16,6 @@ const extractToolsFromBody = (body: Record<string, unknown>): ToolEntry[] => {
     }
   }
   return [];
-};
-
-const writeAuditLog = (event: string, details: Record<string, unknown>): void => {
-  const entry = JSON.stringify({
-    timestamp: new Date().toISOString(),
-    event,
-    ...details,
-  });
-  process.stderr.write(`[AUDIT] ${entry}\n`);
 };
 
 export const scopeValidator = (req: Request, res: Response, next: NextFunction): void => {
@@ -43,7 +35,7 @@ export const scopeValidator = (req: Request, res: Response, next: NextFunction):
     const requiredScope = `tools.${toolName}`;
 
     if (!availableScopes.includes(requiredScope) && !availableScopes.includes('tools.*')) {
-      writeAuditLog('MISSING_SCOPE', {
+      auditLogWithSIEM('MISSING_SCOPE', {
         reason: 'Agent attempted to call a tool without the required NHI scope',
         toolName,
         requiredScope,

@@ -1,3 +1,4 @@
+import { jest, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
 import type { Request, Response, NextFunction } from "express";
 import { scopeValidator } from "../src/middleware/scope-validator.js";
 

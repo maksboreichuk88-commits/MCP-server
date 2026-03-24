@@ -1,16 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { EpistemicSecurityException } from '../errors.js';
+import { auditLogWithSIEM } from '../utils/auditLogger.js';
 
 export const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction): void => {
   if (err instanceof EpistemicSecurityException) {
-    const entry = JSON.stringify({
-      timestamp: new Date().toISOString(),
-      event: 'HARD_HALT',
+    auditLogWithSIEM('HARD_HALT', {
       reason: err.message,
       code: err.code,
       ip: req.ip,
+      path: req.path,
     });
-    process.stderr.write(`[AUDIT] ${entry}\n`);
 
     res.status(403).json({
       error: {
@@ -21,13 +20,12 @@ export const errorHandler = (err: Error, req: Request, res: Response, next: Next
     return;
   }
 
-  const entry = JSON.stringify({
-    timestamp: new Date().toISOString(),
-    event: 'INTERNAL_SERVER_ERROR',
+  auditLogWithSIEM('INTERNAL_SERVER_ERROR', {
     reason: err.message,
     ip: req.ip,
+    path: req.path,
+    stack: err.stack,
   });
-  process.stderr.write(`[AUDIT] ${entry}\n`);
 
   res.status(500).json({
     error: {

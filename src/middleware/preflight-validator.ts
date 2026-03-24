@@ -1,23 +1,33 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
+import { auditLogWithSIEM } from '../utils/auditLogger.js';
 
 const PreflightIdSchema = z.string().uuid();
 
-const preflightRegistry = new Set<string>();
-const consumedRegistry = new Set<string>();
+const preflightRegistry = new Map<string, number>();
+const consumedRegistry = new Map<string, number>();
+const CONSUMED_TTL_MS = 5 * 60 * 1000;
+const CLEANUP_INTERVAL_MS = 60 * 1000;
 
-const writeAuditLog = (event: string, details: Record<string, unknown>): void => {
-  const entry = JSON.stringify({
-    timestamp: new Date().toISOString(),
-    event,
-    ...details,
-  });
-  process.stderr.write(`[AUDIT] ${entry}\n`);
+const cleanupExpired = (): void => {
+  const now = Date.now();
+  for (const [id, expiry] of consumedRegistry) {
+    if (now > expiry) {
+      consumedRegistry.delete(id);
+    }
+  }
+  for (const [id, expiry] of preflightRegistry) {
+    if (now > expiry) {
+      preflightRegistry.delete(id);
+    }
+  }
 };
 
-export const registerPreflight = (id: string): void => {
+setInterval(cleanupExpired, CLEANUP_INTERVAL_MS);
+
+export const registerPreflight = (id: string, ttlMs = CONSUMED_TTL_MS): void => {
   const parsed = PreflightIdSchema.parse(id);
-  preflightRegistry.add(parsed);
+  preflightRegistry.set(parsed, Date.now() + ttlMs);
 };
 
 export const clearPreflightRegistries = (): void => {
@@ -26,6 +36,7 @@ export const clearPreflightRegistries = (): void => {
 };
 
 export const getPreflightStats = (): { pending: number; consumed: number } => {
+  cleanupExpired();
   return {
     pending: preflightRegistry.size,
     consumed: consumedRegistry.size,
@@ -75,7 +86,7 @@ export const preflightValidator = (req: Request, res: Response, next: NextFuncti
       const preflightId = tool.preflightId;
 
       if (!preflightId || typeof preflightId !== 'string') {
-        writeAuditLog('PREFLIGHT_REQUIRED', {
+        auditLogWithSIEM('PREFLIGHT_REQUIRED', {
           reason: 'Blue tool invoked without preflightId',
           toolName: tool.name ?? 'unknown',
           ip: req.ip,
@@ -90,7 +101,7 @@ export const preflightValidator = (req: Request, res: Response, next: NextFuncti
       }
 
       if (consumedRegistry.has(preflightId)) {
-        writeAuditLog('PREFLIGHT_ALREADY_USED', {
+        auditLogWithSIEM('PREFLIGHT_REPLAY_BLOCKED', {
           reason: 'Replay attack: preflightId has already been consumed',
           preflightId,
           toolName: tool.name ?? 'unknown',
@@ -105,9 +116,10 @@ export const preflightValidator = (req: Request, res: Response, next: NextFuncti
         return;
       }
 
-      if (!preflightRegistry.has(preflightId)) {
-        writeAuditLog('PREFLIGHT_NOT_FOUND', {
-          reason: 'preflightId not found in approved registry',
+      const expiry = preflightRegistry.get(preflightId);
+      if (!expiry || Date.now() > expiry) {
+        auditLogWithSIEM('PREFLIGHT_NOT_FOUND', {
+          reason: 'preflightId not found or expired',
           preflightId,
           toolName: tool.name ?? 'unknown',
           ip: req.ip,
@@ -115,19 +127,19 @@ export const preflightValidator = (req: Request, res: Response, next: NextFuncti
         res.status(403).json({
           error: {
             code: 'PREFLIGHT_NOT_FOUND',
-            message: 'Fail-Closed: preflightId is not registered. Request denied.',
+            message: 'Fail-Closed: preflightId is not registered or has expired. Request denied.',
           },
         });
         return;
       }
 
       preflightRegistry.delete(preflightId);
-      consumedRegistry.add(preflightId);
+      consumedRegistry.set(preflightId, Date.now() + CONSUMED_TTL_MS);
     }
 
     next();
   } catch (error: unknown) {
-    writeAuditLog('PREFLIGHT_VALIDATION_ERROR', {
+    auditLogWithSIEM('PREFLIGHT_VALIDATION_ERROR', {
       reason: error instanceof Error ? error.message : 'Unknown preflight error',
       ip: req.ip,
     });

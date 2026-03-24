@@ -1,3 +1,4 @@
+import { jest, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
 import { registerRoute, removeRoute, getRegisteredRoutes, clearRoutes, routeRequest } from "../src/proxy/router.js";
 
 describe("router", () => {

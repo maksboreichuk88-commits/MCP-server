@@ -12,7 +12,7 @@ env:
 
 jobs:
   quality:
-    name: Type Check & Build
+    name: Type Check, Test & Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +27,9 @@ jobs:
 
       - name: Type check
         run: npm run typecheck
+
+      - name: Run tests
+        run: npm test
 
       - name: Build
         run: npm run build

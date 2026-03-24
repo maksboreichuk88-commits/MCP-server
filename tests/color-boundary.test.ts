@@ -1,5 +1,6 @@
+import { jest, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
 import type { Request, Response, NextFunction } from "express";
-import { mcpColorBoundary } from "../src/middleware/color-boundary.js";
+import { mcpColorBoundary, clearColorSessions } from "../src/middleware/color-boundary.js";
 
 function createMockReq(body: Record<string, unknown>, query: Record<string, string> = {}): Partial<Request> {
   return {
@@ -33,6 +34,7 @@ describe("mcpColorBoundary", () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+    clearColorSessions();
   });
 
   it("returns 403 when RED and BLUE tools are requested simultaneously", () => {
@@ -182,5 +184,23 @@ describe("mcpColorBoundary", () => {
 
     expect(next).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(403);
+  });
+
+  it("blocks RED tool if session was previously established as BLUE", () => {
+    const { res: resBlue } = createMockRes();
+    const nextBlue = jest.fn();
+    mcpColorBoundary(createMockReq({
+      tools: [{ name: "write_db", _meta: { color: "blue" } }]
+    }) as Request, resBlue as Response, nextBlue as NextFunction);
+    expect(nextBlue).toHaveBeenCalledTimes(1);
+
+    const { res: resRed } = createMockRes();
+    const nextRed = jest.fn();
+    mcpColorBoundary(createMockReq({
+      tools: [{ name: "read_email", _meta: { color: "red" } }]
+    }) as Request, resRed as Response, nextRed as NextFunction);
+    
+    expect(nextRed).not.toHaveBeenCalled();
+    expect(resRed.status).toHaveBeenCalledWith(403);
   });
 });

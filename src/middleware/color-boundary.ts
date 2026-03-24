@@ -32,6 +32,12 @@ const extractTools = (body: Record<string, unknown>): z.infer<typeof McpToolSche
   return [];
 };
 
+const colorSessions = new Map<string, 'red' | 'blue'>();
+
+export const clearColorSessions = (): void => {
+  colorSessions.clear();
+};
+
 export const mcpColorBoundary = (req: Request, res: Response, next: NextFunction): void => {
   try {
     const tools = extractTools(req.body as Record<string, unknown>);
@@ -67,6 +73,28 @@ export const mcpColorBoundary = (req: Request, res: Response, next: NextFunction
       });
       return;
     }
+
+    const sessionKey = req.ip || 'unknown';
+    const establishedColor = colorSessions.get(sessionKey);
+    const hasRed = redTools.length > 0;
+    const hasBlue = blueTools.length > 0;
+
+    if (hasRed && establishedColor === 'blue') {
+      const message = `Cross-Tool Hijack Attempt detected (Session limits to BLUE). Attempted RED tools: [${redTools.join(', ')}]`;
+      writeAuditLog('CROSS_TOOL_HIJACK_SESSION', { redTools, establishedColor, ip: req.ip });
+      res.status(403).json({ error: { code: 'CROSS_TOOL_HIJACK_ATTEMPT', message } });
+      return;
+    }
+
+    if (hasBlue && establishedColor === 'red') {
+      const message = `Cross-Tool Hijack Attempt detected (Session limits to RED). Attempted BLUE tools: [${blueTools.join(', ')}]`;
+      writeAuditLog('CROSS_TOOL_HIJACK_SESSION', { blueTools, establishedColor, ip: req.ip });
+      res.status(403).json({ error: { code: 'CROSS_TOOL_HIJACK_ATTEMPT', message } });
+      return;
+    }
+
+    if (hasRed && !establishedColor) colorSessions.set(sessionKey, 'red');
+    if (hasBlue && !establishedColor) colorSessions.set(sessionKey, 'blue');
 
     next();
   } catch (error: unknown) {

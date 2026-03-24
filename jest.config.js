@@ -10,7 +10,15 @@ export default {
       'ts-jest',
       {
         useESM: true,
+        isolatedModules: true,
+        diagnostics: {
+          ignoreCodes: [151002],
+        },
       },
     ],
+  },
+  injectGlobals: true,
+  testEnvironmentOptions: {
+    customExportConditions: ['node', 'node-addons'],
   },
 };
