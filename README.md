@@ -31,7 +31,8 @@ stdout ←───────────────── [ShadowLeak Saniti
 | **Rate Limiter** | Burst floods from a single client session (configurable per tenant) |
 | **ShadowLeak Sanitiser** | Stack traces, filesystem paths, API tokens in outbound error envelopes — zero-click exfiltration vectors |
 | **SIEM Exporter** | Streams all interception and firewall blocking events natively in CEF or SYSLOG formats |
-| **Circuit Breaker** | Cascade failures when the target server is unavailable |
+| **MCP Color Boundary** | Mixing of Red (untrusted web/parsing) and Blue (critical internal/DB) tools in a single session |
+| **Circuit Breaker (ETT)** | Epistemic Termination Trigger blocking semantic contradictions and hallucinated LLM responses |
 | **L1 + L2 Cache** | LRU in-memory (fast) + SQLite (persistent). Keyed by SHA-256 of `(server + method + params)` |
 
 **Fail-Closed guarantee:** any middleware fault terminates the request with a structured JSON-RPC error. There is no pass-through fallback.

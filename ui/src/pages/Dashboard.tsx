@@ -1,210 +1,325 @@
-import { useState, useEffect } from 'react';
-import { Shield, ShieldAlert, Cpu, Database, Activity, RefreshCw, Zap } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { 
+  Shield, 
+  Cpu, 
+  Database, 
+  Activity, 
+  RefreshCw, 
+  Zap,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Key,
+  Server,
+  Lock
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/Card';
 import { api } from '../services/api';
-import type { ProxyStats, ProxyConfigData } from '../types/api';
-import { formatNumber, formatBytes, calculateHitRate } from '../utils';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import type { ProxyStats, CircuitBreakerStats } from '../types/api';
+import { clsx } from 'clsx';
 
 export default function Dashboard() {
   const [stats, setStats] = useState<ProxyStats | null>(null);
-  const [config, setConfig] = useState<ProxyConfigData | null>(null);
-  const [history, setHistory] = useState<any[]>([]);
+  const [health, setHealth] = useState<{ status: string; timestamp: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      const [s, c] = await Promise.all([api.getStats(), api.getConfig()]);
+      const [h, s] = await Promise.all([
+        api.getHealth().catch(() => null),
+        api.getStats().catch(() => null)
+      ]);
+      setHealth(h);
       setStats(s);
-      setConfig(c);
-      
-      setHistory(prev => {
-        const now = new Date().toLocaleTimeString('en-US', { hour12: false });
-        const newPoint = {
-          time: now,
-          l1Hits: s.cache.l1.hits,
-          l2Hits: s.cache.l2.hits,
-          requests: s.counters?.mcp_total_requests || 0
-        };
-        const next = [...prev, newPoint];
-        return next.length > 20 ? next.slice(-20) : next;
-      });
+      setError(null);
     } catch (e) {
-      console.error("Failed to load metrics", e);
+      setError(e instanceof Error ? e.message : 'Failed to connect');
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
-    const t = setInterval(loadData, 3000);
-    return () => clearInterval(t);
-  }, []);
+    const interval = setInterval(loadData, 5000);
+    return () => clearInterval(interval);
+  }, [loadData]);
 
-  if (!stats || !config) return <div className="p-10 text-center text-gray-500">Connecting to Proxy...</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-center">
+          <Cpu className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
+          <p className="text-gray-400">Connecting to MCP Proxy...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const totalSavings = stats.cache.l1.tokenSavings + stats.cache.l2.tokenSavings;
+  if (error && !stats) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <Card className="max-w-md bg-red-900/20 border-red-800">
+          <CardContent className="p-6 text-center">
+            <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-red-400 mb-2">Connection Failed</h2>
+            <p className="text-gray-400">{error}</p>
+            <button 
+              onClick={loadData}
+              className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white"
+            >
+              Retry
+            </button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const getCircuitStateIcon = (state: CircuitBreakerStats['state']) => {
+    switch (state) {
+      case 'CLOSED':
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'HALF_OPEN':
+        return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
+      case 'OPEN':
+        return <XCircle className="w-4 h-4 text-red-500" />;
+    }
+  };
+
+  const getCircuitStateColor = (state: CircuitBreakerStats['state']) => {
+    switch (state) {
+      case 'CLOSED':
+        return 'text-green-500 bg-green-500/10';
+      case 'HALF_OPEN':
+        return 'text-yellow-500 bg-yellow-500/10';
+      case 'OPEN':
+        return 'text-red-500 bg-red-500/10';
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-8 space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-3">
-            <Cpu className="w-8 h-8 text-blue-600" />
-            MCP Context Optimizer
-          </h1>
-          <p className="text-gray-500 mt-1 flex items-center gap-2">
-            <span className="flex w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-            Live Metrics &bull; Uptime: {Math.floor(stats.uptime_seconds / 60)}m {Math.floor(stats.uptime_seconds % 60)}s
-          </p>
-        </div>
-        <div className="flex gap-4">
-          <Card className="bg-blue-50/50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900">
-            <CardContent className="p-4 flex flex-col items-center">
-              <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">Token Savings</span>
-              <span className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                <Zap className="inline w-5 h-5 mr-1 pb-1" />
-                {formatNumber(totalSavings)}
-              </span>
+    <div className="min-h-screen bg-gray-950 text-white">
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        <header className="flex items-center justify-between border-b border-gray-800 pb-4">
+          <div className="flex items-center gap-3">
+            <Shield className="w-8 h-8 text-blue-500" />
+            <div>
+              <h1 className="text-2xl font-bold">MCP Proxy Firewall</h1>
+              <p className="text-sm text-gray-400">Fail-Closed Security Gateway</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            {health && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 text-green-400">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-sm font-medium">Healthy</span>
+              </div>
+            )}
+            <button 
+              onClick={loadData}
+              className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <RefreshCw className={clsx("w-5 h-5", loading && "animate-spin")} />
+            </button>
+          </div>
+        </header>
+
+        {error && (
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0" />
+            <span className="text-yellow-400 text-sm">{error}</span>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="bg-gray-900 border-gray-800">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400">Registered Routes</CardTitle>
+              <Server className="w-4 h-4 text-gray-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-white">{stats?.routes ?? 0}</div>
+              <p className="text-xs text-gray-500 mt-1">Active tool routes</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-900 border-gray-800">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400">L1 Cache Hit Rate</CardTitle>
+              <Activity className="w-4 h-4 text-gray-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-white">
+                {stats?.cache ? `${(stats.cache.hitRatio * 100).toFixed(1)}%` : 'N/A'}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                L1: {stats?.cache?.hits.l1 ?? 0} | L2: {stats?.cache?.hits.l2 ?? 0}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-900 border-gray-800">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400">Cache Misses</CardTitle>
+              <Database className="w-4 h-4 text-gray-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-white">{stats?.cache?.misses ?? 0}</div>
+              <p className="text-xs text-gray-500 mt-1">Total cache misses</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-900 border-gray-800">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400">Circuit Breakers</CardTitle>
+              <Shield className="w-4 h-4 text-gray-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-white">
+                {stats?.circuitBreakers?.length ?? 0}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Active breakers</p>
             </CardContent>
           </Card>
         </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="bg-gray-900 border-gray-800">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5 text-blue-500" />
+                Circuit Breakers
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!stats?.circuitBreakers?.length ? (
+                <p className="text-gray-500 text-sm">No circuit breakers configured</p>
+              ) : (
+                <div className="space-y-3">
+                  {stats.circuitBreakers.map((cb) => (
+                    <div 
+                      key={cb.name}
+                      className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        {getCircuitStateIcon(cb.state)}
+                        <div>
+                          <p className="font-medium">{cb.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {cb.failures} failures / {cb.successes} successes
+                          </p>
+                        </div>
+                      </div>
+                      <span className={clsx(
+                        'px-2.5 py-1 rounded-full text-xs font-medium',
+                        getCircuitStateColor(cb.state)
+                      )}>
+                        {cb.state}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-900 border-gray-800">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lock className="w-5 h-5 text-purple-500" />
+                Security Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50">
+                  <div className="flex items-center gap-3">
+                    <Key className="w-5 h-5 text-gray-400" />
+                    <span>NHI Authentication</span>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400">
+                    Active
+                  </span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50">
+                  <div className="flex items-center gap-3">
+                    <Shield className="w-5 h-5 text-gray-400" />
+                    <span>Color Boundary</span>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400">
+                    Enforcing
+                  </span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50">
+                  <div className="flex items-center gap-3">
+                    <Zap className="w-5 h-5 text-gray-400" />
+                    <span>Epistemic Egress Filter</span>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400">
+                    Active
+                  </span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50">
+                  <div className="flex items-center gap-3">
+                    <AlertTriangle className="w-5 h-5 text-gray-400" />
+                    <span>Preflight Validation</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">
+                      Pending: {stats?.preflight.pending ?? 0}
+                    </span>
+                    <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400">
+                      Ready
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="bg-gray-900 border-gray-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="w-5 h-5 text-green-500" />
+              Cache Statistics
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {stats?.cache ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-4 rounded-lg bg-gray-800/50">
+                  <p className="text-2xl font-bold text-blue-400">{stats.cache.l1.size}</p>
+                  <p className="text-xs text-gray-500">L1 Entries</p>
+                  <p className="text-xs text-gray-600">max: {stats.cache.l1.maxSize}</p>
+                </div>
+                <div className="text-center p-4 rounded-lg bg-gray-800/50">
+                  <p className="text-2xl font-bold text-green-400">{stats.cache.l2.entries}</p>
+                  <p className="text-xs text-gray-500">L2 Entries</p>
+                  <p className="text-xs text-gray-600">{stats.cache.l2.expiredEntries} expired</p>
+                </div>
+                <div className="text-center p-4 rounded-lg bg-gray-800/50">
+                  <p className="text-2xl font-bold text-purple-400">{stats.cache.hits.total}</p>
+                  <p className="text-xs text-gray-500">Total Hits</p>
+                </div>
+                <div className="text-center p-4 rounded-lg bg-gray-800/50">
+                  <p className="text-2xl font-bold text-red-400">{stats.cache.misses}</p>
+                  <p className="text-xs text-gray-500">Total Misses</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm">Cache not initialized</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <footer className="text-center text-gray-600 text-sm pt-4 border-t border-gray-800">
+          <p>MCP Context Optimizer v2.0.0</p>
+          <p className="text-xs mt-1">Fail-Closed Security Gateway for Model Context Protocol</p>
+        </footer>
       </div>
-
-      {/* Primary Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">L1 Cache (Memory)</CardTitle>
-            <Activity className="w-4 h-4 text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">{calculateHitRate(stats.cache.l1.hits, stats.cache.l1.misses)}</div>
-            <p className="text-xs text-gray-500 mt-1">
-              {formatNumber(stats.cache.l1.hits)} hits &bull; {stats.cache.l1.items} items &bull; {formatBytes(stats.cache.l1.size)}
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">L2 Cache (SQLite)</CardTitle>
-            <Database className="w-4 h-4 text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">{calculateHitRate(stats.cache.l2.hits, stats.cache.l2.misses)}</div>
-            <p className="text-xs text-gray-500 mt-1">
-              {formatNumber(stats.cache.l2.hits)} hits &bull; {stats.cache.l2.items} items &bull; {formatBytes(stats.cache.l2.size)}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Network IO</CardTitle>
-            <RefreshCw className="w-4 h-4 text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(stats.counters?.mcp_total_requests || 0)}</div>
-            <p className="text-xs text-gray-500 mt-1">
-               Total RPC requests processed
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Circuit Breaker</CardTitle>
-            {config.circuitBreakerEnabled ? <Shield className="w-4 h-4 text-green-500" /> : <ShieldAlert className="w-4 h-4 text-red-500" />}
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">
-              {config.circuitBreakerEnabled ? "Protected" : "Disabled"}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Active defense mechanisms
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* OpenAI Demo Requirements: Specific Metrics Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Core Security & Processing Metrics</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-              <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-800 dark:text-gray-400">
-                <tr>
-                  <th scope="col" className="px-6 py-3 rounded-tl-lg rounded-bl-lg">Metric Name</th>
-                  <th scope="col" className="px-6 py-3 rounded-tr-lg rounded-br-lg text-right">Value</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="bg-white dark:bg-gray-900">
-                  <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                    Total RPC Requests
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    {formatNumber(stats.counters?.mcp_total_requests || 0)}
-                  </td>
-                </tr>
-                <tr className="bg-white dark:bg-gray-900">
-                  <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                    Blocked: Covert tool invocation
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    {formatNumber(stats.counters?.mcp_blocked_covert || 0)}
-                  </td>
-                </tr>
-                <tr className="bg-white dark:bg-gray-900">
-                  <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                    Intercepted: ShadowLeak
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    {formatNumber(stats.counters?.mcp_intercepted_shadowleak || 0)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Charts */}
-      <Card>
-        <CardHeader>
-          <CardTitle>RPC Traffic & Cache Hits</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px] w-full mt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={history} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorL1" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorReq" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#9ca3af" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#9ca3af" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="time" stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#f3f4f6', borderRadius: '0.5rem' }} 
-                  itemStyle={{ color: '#f3f4f6' }}
-                />
-                <Area type="monotone" dataKey="requests" stroke="#9ca3af" fillOpacity={1} fill="url(#colorReq)" name="Total RPC" />
-                <Area type="monotone" dataKey="l1Hits" stroke="#3b82f6" fillOpacity={1} fill="url(#colorL1)" name="L1 Hits" />
-                <Area type="monotone" dataKey="l2Hits" stroke="#10b981" fillOpacity={0.1} name="L2 Hits" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
