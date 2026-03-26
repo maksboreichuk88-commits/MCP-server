@@ -1,0 +1,27 @@
+name: Feature request
+description: Propose a concrete improvement to the firewall, docs, demos, or reviewer experience.
+title: "[feature] "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem exists today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: What should be added, changed, or removed?
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Why this matters
+      description: Reviewer, maintainer, or user impact.
+    validations:
+      required: true
