@@ -1,0 +1,44 @@
+name: Security report
+description: Report a private security issue.
+title: "[security] "
+labels:
+  - security
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Provide a short description of the issue without exploit payloads.
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Affected surface
+      options:
+        - stdio firewall
+        - HTTP review harness
+        - admin API
+        - dashboard
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction summary
+      description: Use minimal steps. Do not include live exploit details in a public issue.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Requested outcome
+      description: Private triage and remediation.
+    validations:
+      required: true
