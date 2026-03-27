@@ -7,7 +7,7 @@
 
 The delayed target used to reproduce the shutdown-race regression lives in `tests/fixtures/slow-stdio-target.js`, not in this directory.
 
-For the complete Windows and Linux walkthrough, see [docs/EVALUATOR_WALKTHROUGH.md](../docs/EVALUATOR_WALKTHROUGH.md).
+For the complete Windows and Linux walkthrough, see [docs/WALKTHROUGH.md](../docs/WALKTHROUGH.md).
 For the repeatable benchmark output, see [docs/EVIDENCE_BENCHMARK.md](../docs/EVIDENCE_BENCHMARK.md) and run `npm run benchmark:stdio`.
 
 Quick demo path:

@@ -6,7 +6,7 @@ Use it when you want a local control point between an MCP client and local tools
 
 This repository ships two runnable surfaces:
 
-- a primary stdio firewall that sits between an agent client and a local MCP tool server
+- a primary stdio firewall that sits between an MCP client and a local MCP tool server
 - an HTTP companion service that reuses the same trust gates for downstream HTTP tool routes
 
 The stdio runtime is the main product path. The HTTP `/mcp` service exists for compatibility testing, route registration, cache inspection, and dashboard use.
@@ -146,9 +146,9 @@ Use `npm run demo:stdio` when you want to validate the transport boundary direct
 ## Documentation
 
 - threat model: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md)
-- stdio walkthrough: [docs/EVALUATOR_WALKTHROUGH.md](docs/EVALUATOR_WALKTHROUGH.md)
+- stdio walkthrough: [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md)
 - benchmark methodology: [docs/EVIDENCE_BENCHMARK.md](docs/EVIDENCE_BENCHMARK.md)
-- audit and review notes: [docs/REVIEWER_GUIDE.md](docs/REVIEWER_GUIDE.md)
+- validation and operations notes: [docs/VALIDATION_GUIDE.md](docs/VALIDATION_GUIDE.md)
 - examples and payloads: [examples/README.md](examples/README.md)
 
 ## Repository Map
@@ -199,7 +199,6 @@ tests/                    Jest suites for gates, HTTP, admin, and stdio paths
 
 ## Project Files
 
-- agent instructions: [AGENTS.md](AGENTS.md)
 - changelog: [CHANGELOG.md](CHANGELOG.md)
 - security policy: [SECURITY.md](SECURITY.md)
 - support guide: [SUPPORT.md](SUPPORT.md)
