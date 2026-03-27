@@ -78,7 +78,7 @@ If you want to run the firewall from an MCP client without cloning this reposito
 Example command:
 
 ```bash
-npx -y github:maksboreichuk88-commits/MCP-server
+npx -y github:maksboreichuk88-commits/mcp-transport-firewall
 ```
 
 Example MCP client configuration:
@@ -88,7 +88,7 @@ Example MCP client configuration:
   "mcpServers": {
     "protected-local-tooling": {
       "command": "npx",
-      "args": ["-y", "github:maksboreichuk88-commits/MCP-server"],
+      "args": ["-y", "github:maksboreichuk88-commits/mcp-transport-firewall"],
       "env": {
         "PROXY_AUTH_TOKEN": "replace-with-32-byte-secret",
         "MCP_TARGET_COMMAND": "node",
