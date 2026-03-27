@@ -200,6 +200,8 @@ tests/                    Jest suites for gates, HTTP, admin, and stdio paths
 ## Project Files
 
 - changelog: [CHANGELOG.md](CHANGELOG.md)
+- roadmap: [ROADMAP.md](ROADMAP.md)
+- contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
 - security policy: [SECURITY.md](SECURITY.md)
 - support guide: [SUPPORT.md](SUPPORT.md)
 - code of conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
