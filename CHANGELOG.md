@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog and the project follows semantic versioning.
 
 
+- 2.2.0 adds a bundled standalone MCP server so `npx mcp-transport-firewall` is useful without a separately installed downstream target
+- 2.2.0 preserves downstream proxy mode through `--target`, `MCP_TARGET_COMMAND`, and `MCP_TARGET`
+- 2.2.0 extends package smoke coverage to validate standalone MCP tool discovery and invocation from the packed tarball
+
+
 
 - repeatable stdio evidence benchmark with a validation corpus and JSON output packet
 - environment-based stdio target resolution for shorter MCP client configurations

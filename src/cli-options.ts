@@ -3,11 +3,18 @@ export interface CliOptions {
   targetArgs: string[];
   verbose: boolean;
   help: boolean;
+  embeddedTarget: boolean;
 }
 
 export interface ResolvedTarget {
   targetCommand: string;
   targetArgs: string[];
+}
+
+export interface ResolveTargetRuntime {
+  command: string;
+  execArgv: string[];
+  entryScript?: string;
 }
 
 const splitCommandString = (value: string): string[] => {
@@ -37,6 +44,7 @@ export const parseCliArgs = (args: string[]): CliOptions => {
     targetArgs: [],
     verbose: false,
     help: false,
+    embeddedTarget: false,
   };
 
   for (let i = 0; i < args.length; i += 1) {
@@ -49,6 +57,11 @@ export const parseCliArgs = (args: string[]): CliOptions => {
 
     if (arg === '--verbose') {
       options.verbose = true;
+      continue;
+    }
+
+    if (arg === '--embedded-target') {
+      options.embeddedTarget = true;
       continue;
     }
 
@@ -84,6 +97,11 @@ export const parseCliArgs = (args: string[]): CliOptions => {
 export const resolveTarget = (
   cli: CliOptions,
   env: NodeJS.ProcessEnv = process.env,
+  runtime: ResolveTargetRuntime = {
+    command: process.execPath,
+    execArgv: [...process.execArgv],
+    entryScript: process.argv[1],
+  },
 ): ResolvedTarget | undefined => {
   if (cli.targetCommand) {
     return {
@@ -115,17 +133,25 @@ export const resolveTarget = (
   }
 
   const fullCommand = env.MCP_TARGET?.trim();
-  if (!fullCommand) {
-    return undefined;
+  if (fullCommand) {
+    const parsed = splitCommandString(fullCommand);
+    if (parsed.length === 0) {
+      return undefined;
+    }
+
+    return {
+      targetCommand: parsed[0],
+      targetArgs: parsed.slice(1),
+    };
   }
 
-  const parsed = splitCommandString(fullCommand);
-  if (parsed.length === 0) {
+  const entryScript = runtime.entryScript?.trim();
+  if (!entryScript) {
     return undefined;
   }
 
   return {
-    targetCommand: parsed[0],
-    targetArgs: parsed.slice(1),
+    targetCommand: runtime.command,
+    targetArgs: [...runtime.execArgv, entryScript, '--embedded-target'],
   };
 };

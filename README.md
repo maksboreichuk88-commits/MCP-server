@@ -94,13 +94,27 @@ Control-plane endpoints:
 The intended public package contract for this project is:
 
 ```bash
+npx mcp-transport-firewall
 npx mcp-transport-firewall --help
 npm install -g mcp-transport-firewall
 ```
 
-The release pipeline in `.github/workflows/release-npm.yml` is configured to publish this exact CLI on semver tags after hosted CI is available. Until the first public registry release is cut, use the source checkout flow above.
+Standalone published-package MCP client configuration:
 
-Published-package MCP client configuration after the first npm release:
+```json
+{
+  "mcpServers": {
+    "transport-firewall": {
+      "command": "npx",
+      "args": ["-y", "mcp-transport-firewall"]
+    }
+  }
+}
+```
+
+In standalone mode the package exposes bundled MCP tools for status and launch guidance, so it can be attached as a self-contained MCP server with no additional repo checkout or downstream server install.
+
+Protected downstream proxy mode:
 
 ```json
 {
@@ -118,16 +132,10 @@ Published-package MCP client configuration after the first npm release:
 }
 ```
 
-Alternative target configuration inputs:
+Alternative target configuration inputs for downstream proxy mode:
 
 - `MCP_TARGET_ARGS` for a space-delimited argument string
 - `MCP_TARGET` for a full target command string
-
-Source-install fallback before the first registry release:
-
-```bash
-npx -y github:maksboreichuk88-commits/mcp-transport-firewall --help
-```
 
 
 ```text

@@ -29,4 +29,19 @@ describe('cli target resolution', () => {
       targetArgs: ['server.py'],
     });
   });
+
+  it('falls back to the bundled standalone MCP target when no downstream target is configured', () => {
+    const cli = parseCliArgs([]);
+
+    const target = resolveTarget(cli, {}, {
+      command: process.execPath,
+      execArgv: ['--no-warnings'],
+      entryScript: '/virtual/dist/cli.js',
+    });
+
+    expect(target).toEqual({
+      targetCommand: process.execPath,
+      targetArgs: ['--no-warnings', '/virtual/dist/cli.js', '--embedded-target'],
+    });
+  });
 });

@@ -2,15 +2,25 @@
 
 import 'dotenv/config';
 import { parseCliArgs, resolveTarget } from './cli-options.js';
+import { startEmbeddedMcpServer } from './embedded/server.js';
 import { createStdioFirewallProxy } from './stdio/proxy.js';
 
 const printHelp = (): void => {
   process.stdout.write(`MCP Transport Firewall
 
 Usage:
+  mcp-transport-firewall
   mcp-transport-firewall --target "node target.js"
   mcp-transport-firewall -- node target.js
   MCP_TARGET_COMMAND=node MCP_TARGET_ARGS_JSON='["server.js"]' mcp-transport-firewall
+
+Modes:
+  no target supplied      start the bundled standalone MCP server
+  target supplied         wrap a downstream MCP server behind the fail-closed stdio firewall
+
+Standalone tools:
+  firewall_status         runtime status and deployment flags
+  firewall_usage          launch guidance for standalone and downstream proxy mode
 
 Environment:
   PROXY_AUTH_TOKEN        Optional NHI secret for fail-closed auth
@@ -27,12 +37,18 @@ Environment:
 
 const main = async (): Promise<void> => {
   const cli = parseCliArgs(process.argv.slice(2));
-  const target = resolveTarget(cli);
 
   if (cli.help) {
     printHelp();
     return;
   }
+
+  if (cli.embeddedTarget) {
+    await startEmbeddedMcpServer();
+    return;
+  }
+
+  const target = resolveTarget(cli);
 
   if (!target) {
     printHelp();
