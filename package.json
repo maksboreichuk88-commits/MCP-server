@@ -15,12 +15,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/maksboreichuk88-commits/MCP-server.git"
+    "url": "git+https://github.com/maksboreichuk88-commits/mcp-transport-firewall.git"
   },
   "bugs": {
-    "url": "https://github.com/maksboreichuk88-commits/MCP-server/issues"
+    "url": "https://github.com/maksboreichuk88-commits/mcp-transport-firewall/issues"
   },
-  "homepage": "https://github.com/maksboreichuk88-commits/MCP-server#readme",
+  "homepage": "https://github.com/maksboreichuk88-commits/mcp-transport-firewall#readme",
   "keywords": [
     "mcp",
     "model-context-protocol",

@@ -30,7 +30,7 @@ MCP client configuration path:
   "mcpServers": {
     "protected-demo-target": {
       "command": "npx",
-      "args": ["-y", "github:maksboreichuk88-commits/MCP-server"],
+      "args": ["-y", "github:maksboreichuk88-commits/mcp-transport-firewall"],
       "env": {
         "PROXY_AUTH_TOKEN": "replace-with-32-byte-secret",
         "MCP_TARGET_COMMAND": "node",
