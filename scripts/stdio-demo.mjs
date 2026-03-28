@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
@@ -10,6 +11,9 @@ const repoRoot = path.resolve(currentDirPath, '..');
 const cliPath = path.join(repoRoot, 'dist', 'cli.js');
 const targetPath = path.join(repoRoot, 'examples', 'demo-target.js');
 const proxyToken = process.env.PROXY_AUTH_TOKEN ?? '12345678901234567890123456789012';
+const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mcp-stdio-demo-'));
+const cacheDir = path.join(runtimeDir, 'cache');
+const auditLogPath = path.join(runtimeDir, 'audit.log');
 
 if (!fs.existsSync(cliPath)) {
   console.error('Missing dist/cli.js. Run "npm run build" before "npm run demo:stdio".');
@@ -26,6 +30,8 @@ const proxy = spawn(process.execPath, [cliPath, '--', process.execPath, targetPa
     ...process.env,
     PROXY_AUTH_TOKEN: proxyToken,
     MCP_ADMIN_ENABLED: 'false',
+    MCP_CACHE_DIR: cacheDir,
+    MCP_AUDIT_LOG_PATH: auditLogPath,
   },
   stdio: ['pipe', 'pipe', 'pipe'],
 });
@@ -37,6 +43,10 @@ const stdoutReader = readline.createInterface({
 
 const stderrLines = [];
 const pendingResponses = [];
+let proxyExitWaiterResolve = null;
+const proxyExited = new Promise((resolve) => {
+  proxyExitWaiterResolve = resolve;
+});
 
 proxy.stderr.on('data', (chunk) => {
   stderrLines.push(chunk.toString());
@@ -60,6 +70,7 @@ proxy.on('exit', (code, signal) => {
     const pending = pendingResponses.shift();
     pending.reject(new Error(`stdio proxy exited early (code=${code}, signal=${signal})`));
   }
+  proxyExitWaiterResolve?.();
 });
 
 const request = (message, timeoutMs = 5000) => {
@@ -175,5 +186,7 @@ try {
   if (!proxy.killed) {
     proxy.kill('SIGTERM');
   }
+  await proxyExited;
   stdoutReader.close();
+  fs.rmSync(runtimeDir, { recursive: true, force: true });
 }

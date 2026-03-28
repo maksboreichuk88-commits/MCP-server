@@ -2,7 +2,10 @@ import fs from 'fs';
 import dgram from 'node:dgram';
 import path from 'path';
 
-const logFilePath = path.join(process.cwd(), 'audit.log');
+const configuredAuditLogPath = process.env.MCP_AUDIT_LOG_PATH?.trim() || null;
+const logFilePath =
+  configuredAuditLogPath ??
+  (process.env.NODE_ENV === 'test' ? null : path.join(process.cwd(), 'audit.log'));
 
 export type AuditEvent = {
   timestamp: string;
@@ -118,7 +121,10 @@ const recordBlockedRequest = (timestamp: string, event: string, details: Record<
 export const auditLog = (event: string, details: Record<string, unknown>): void => {
   const timestamp = new Date().toISOString();
   const entry = createEntry(timestamp, event, details) + '\n';
-  fs.appendFileSync(logFilePath, entry, { flag: 'a' });
+  if (logFilePath) {
+    fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
+    fs.appendFileSync(logFilePath, entry, { flag: 'a' });
+  }
   process.stderr.write(`[AUDIT] ${entry}`);
   recordBlockedRequest(timestamp, event, details);
 };

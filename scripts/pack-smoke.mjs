@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -14,6 +15,11 @@ const npxCommand = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 const cliName = packageJson.bin?.['mcp-transport-firewall'];
+const runtimeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mcp-pack-smoke-'));
+const runtimeEnv = {
+  MCP_CACHE_DIR: path.join(runtimeDir, 'cache'),
+  MCP_AUDIT_LOG_PATH: path.join(runtimeDir, 'audit.log'),
+};
 
 if (typeof cliName !== 'string') {
   console.error('Missing mcp-transport-firewall bin entry in package.json.');
@@ -59,6 +65,7 @@ const ensureSuccess = (label, args, env = {}, matcher) => {
       cwd: repoRoot,
       env: {
         ...process.env,
+        ...runtimeEnv,
         ...env,
       },
       encoding: 'utf8',
@@ -96,6 +103,7 @@ const ensureStandaloneMcpServer = async (tarballPath) => {
     cwd: repoRoot,
     env: {
       ...process.env,
+      ...runtimeEnv,
       MCP_ADMIN_ENABLED: 'false',
     },
     stderr: 'pipe',
@@ -153,4 +161,5 @@ try {
   console.log(`package smoke passed for ${tarballName}`);
 } finally {
   fs.rmSync(tarballPath, { force: true });
+  fs.rmSync(runtimeDir, { recursive: true, force: true });
 }

@@ -91,6 +91,7 @@ Core runtime variables:
 | `MCP_TARGET` | stdio | full target command fallback |
 | `MCP_TARGET_TIMEOUT_MS` | stdio | downstream response timeout override |
 | `MCP_CACHE_DIR` | stdio + HTTP | persistent L2 cache directory |
+| `MCP_AUDIT_LOG_PATH` | stdio + HTTP | overrides the audit log file path; default file logging is disabled in test mode unless this is set |
 | `MCP_CACHE_TTL_SECONDS` | stdio + HTTP | cache TTL |
 | `MCP_ADMIN_ENABLED` | stdio + HTTP | enables admin API and dashboard |
 | `MCP_ADMIN_PORT` | stdio + HTTP | admin API port |

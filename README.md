@@ -263,6 +263,7 @@ Supporting artifacts:
 | `MCP_TARGET_ARGS` | stdio | space-delimited fallback args for `MCP_TARGET_COMMAND` | none |
 | `MCP_TARGET` | stdio | full target command string fallback | none |
 | `MCP_CACHE_DIR` | stdio + HTTP | persistent L2 cache directory | `.mcp-cache` |
+| `MCP_AUDIT_LOG_PATH` | stdio + HTTP | override audit log file path | `audit.log` in current working directory, disabled in test mode unless set |
 | `MCP_CACHE_TTL_SECONDS` | stdio + HTTP | cache TTL in seconds | `300` |
 | `MCP_ADMIN_ENABLED` | stdio + HTTP | enable admin API, dashboard, and metrics exporter | `false` |
 | `MCP_ADMIN_PORT` | stdio + HTTP | admin port | `9090` |

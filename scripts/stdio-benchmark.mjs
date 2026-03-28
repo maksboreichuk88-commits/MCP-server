@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline';
 import { spawn } from 'node:child_process';
@@ -28,6 +29,7 @@ if (!fs.existsSync(corpusPath)) {
 const corpus = JSON.parse(fs.readFileSync(corpusPath, 'utf8'));
 const cases = Array.isArray(corpus.cases) ? corpus.cases : [];
 const capturedStderrLines = [];
+const runtimeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'mcp-stdio-benchmark-'));
 
 if (cases.length === 0) {
   console.error('No benchmark cases found in examples/evidence-corpus.json.');
@@ -39,12 +41,17 @@ const createAuthorization = (scopes) => {
 };
 
 const createSession = () => {
+  const sessionDir = fs.mkdtempSync(path.join(runtimeRoot, 'session-'));
+  const cacheDir = path.join(sessionDir, 'cache');
+  const auditLogPath = path.join(sessionDir, 'audit.log');
   const proxy = spawn(process.execPath, [cliPath, '--', process.execPath, targetPath], {
     cwd: repoRoot,
     env: {
       ...process.env,
       PROXY_AUTH_TOKEN: proxyToken,
       MCP_ADMIN_ENABLED: 'false',
+      MCP_CACHE_DIR: cacheDir,
+      MCP_AUDIT_LOG_PATH: auditLogPath,
     },
     stdio: ['pipe', 'pipe', 'pipe'],
   });
@@ -57,6 +64,10 @@ const createSession = () => {
   const pendingResponses = [];
   const stderrLines = [];
   let closed = false;
+  let proxyExitWaiterResolve = null;
+  const proxyExited = new Promise((resolve) => {
+    proxyExitWaiterResolve = resolve;
+  });
 
   proxy.stderr.on('data', (chunk) => {
     stderrLines.push(chunk.toString());
@@ -80,6 +91,7 @@ const createSession = () => {
       const pending = pendingResponses.shift();
       pending.reject(new Error(`stdio proxy exited early (code=${code}, signal=${signal})`));
     }
+    proxyExitWaiterResolve?.();
   });
 
   const request = (message, timeoutMs = 5000) => {
@@ -113,7 +125,9 @@ const createSession = () => {
     if (!proxy.killed) {
       proxy.kill('SIGTERM');
     }
+    await proxyExited;
     stdoutReader.close();
+    fs.rmSync(sessionDir, { recursive: true, force: true });
   };
 
   return {
@@ -369,4 +383,6 @@ try {
     console.error(capturedStderrLines.join(''));
   }
   process.exitCode = 1;
+} finally {
+  fs.rmSync(runtimeRoot, { recursive: true, force: true });
 }
