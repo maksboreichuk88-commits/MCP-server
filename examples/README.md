@@ -21,7 +21,7 @@ Manual interactive path:
 npm run start:cli -- -- node examples/demo-target.js
 ```
 
-Published-package MCP client configuration path after the first npm release:
+Published-package MCP client configuration path:
 
 ```json
 {
@@ -41,10 +41,10 @@ Published-package MCP client configuration path after the first npm release:
 
 Then write JSON-RPC lines to stdin. If `PROXY_AUTH_TOKEN` is configured, include `_meta.authorization` inside the request body.
 
-Source-install fallback before the first npm release:
+Source-install fallback when you want to execute the repository HEAD instead of the published npm package:
 
 ```bash
-npx -y github:maksboreichuk88-commits/mcp-transport-firewall --help
+npx -y github:shleder/mcp-transport-firewall --help
 ```
 
 

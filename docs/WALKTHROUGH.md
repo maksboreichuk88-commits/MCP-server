@@ -58,7 +58,7 @@ curl http://localhost:9090/metrics
 The Docker path is useful for observability and packaging validation. The stdio path remains the main proof of transport-boundary enforcement.
 
 
-The intended public CLI contract after the first npm release is:
+The intended public CLI contract is:
 
 ```bash
 npx mcp-transport-firewall

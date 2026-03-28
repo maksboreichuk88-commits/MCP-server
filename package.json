@@ -22,12 +22,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/maksboreichuk88-commits/mcp-transport-firewall.git"
+    "url": "git+https://github.com/shleder/mcp-transport-firewall.git"
   },
   "bugs": {
-    "url": "https://github.com/maksboreichuk88-commits/mcp-transport-firewall/issues"
+    "url": "https://github.com/shleder/mcp-transport-firewall/issues"
   },
-  "homepage": "https://github.com/maksboreichuk88-commits/mcp-transport-firewall#readme",
+  "homepage": "https://github.com/shleder/mcp-transport-firewall#readme",
   "license": "MIT",
   "keywords": [
     "mcp",
