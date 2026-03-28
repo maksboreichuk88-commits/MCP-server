@@ -234,7 +234,7 @@ src/metrics/              Prometheus-formatted exporter
 ui/                       React dashboard
 scripts/                  demos, repeatable benchmarks, and package smoke checks
 examples/                 demo target and benchmark corpus
-docs/                     threat model, validation, verification packet, distribution notes
+docs/                     canonical package, architecture, threat model, and evidence docs
 tests/                    Jest suites for stdio, HTTP, admin, and trust gates
 ```
 
@@ -248,16 +248,9 @@ tests/                    Jest suites for stdio, HTTP, admin, and trust gates
 - architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - release checklist: [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md)
 
-Reference docs:
+Supporting artifacts:
 
-- stdio walkthrough: [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md)
-- benchmark methodology: [docs/EVIDENCE_BENCHMARK.md](docs/EVIDENCE_BENCHMARK.md)
 - benchmark snapshot: [docs/STDIO_BENCHMARK_SNAPSHOT.json](docs/STDIO_BENCHMARK_SNAPSHOT.json)
-- threat-model summary: [docs/THREAT_MODEL_SUMMARY.md](docs/THREAT_MODEL_SUMMARY.md)
-- limits and non-goals: [docs/LIMITS_AND_NON_GOALS.md](docs/LIMITS_AND_NON_GOALS.md)
-- stdio demo transcript: [docs/STDIO_DEMO_TRANSCRIPT.md](docs/STDIO_DEMO_TRANSCRIPT.md)
-- verification packet: [docs/SECURITY_REVIEW_PACKET.md](docs/SECURITY_REVIEW_PACKET.md)
-- distribution notes: [docs/OPEN_SOURCE_DISTRIBUTION.md](docs/OPEN_SOURCE_DISTRIBUTION.md)
 - examples and payloads: [examples/README.md](examples/README.md)
 
 <h2>Environment Surface</h2>

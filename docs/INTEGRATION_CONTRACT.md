@@ -114,3 +114,14 @@ Package consumers can rely on the following stable behaviors within the current 
 - blocked requests return explicit denial responses
 - successful downstream responses are sanitized before they re-enter the client context
 - documented examples in `docs/CLIENT_CONFIGS.md` are intended to stay runnable against the published package
+
+Limits and non-goals
+
+- the primary enforcement path is stdio; the HTTP service is a compatibility harness
+- strict schema enforcement applies only to registered tool contracts
+- the shared-secret auth envelope is not cryptographic attestation
+- the current egress gate is recursive string inspection, not a full parser
+- cache behavior is optimized for allowlisted read-style tools only
+- this package does not claim kernel, VM, or container sandboxing
+- this package does not claim complete prompt-injection elimination
+- this package does not claim post-execution containment after a tool has already started

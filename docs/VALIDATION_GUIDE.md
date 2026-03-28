@@ -17,7 +17,7 @@ The most useful validation flow is:
 | Topic | Code | Evidence |
 |---|---|---|
 | stdio interception path | `src/cli.ts`, `src/stdio/proxy.ts` | `tests/cli.test.ts`, `scripts/stdio-demo.mjs` |
-| repeatable evidence corpus | `scripts/stdio-benchmark.mjs`, `examples/evidence-corpus.json` | `docs/EVIDENCE_BENCHMARK.md` |
+| repeatable evidence corpus | `scripts/stdio-benchmark.mjs`, `examples/evidence-corpus.json` | `docs/STDIO_BENCHMARK_SNAPSHOT.json`, `docs/ARTIFACT_PACK.md` |
 | fail-closed auth | `src/middleware/nhi-auth-validator.ts` | `tests/nhi-auth.test.ts`, `tests/cli.test.ts` |
 | scope enforcement | `src/middleware/scope-validator.ts` | `tests/scope-validator.test.ts` |
 | trust-domain separation | `src/middleware/color-boundary.ts` | `tests/color-boundary.test.ts` |
@@ -41,7 +41,7 @@ Use the Docker path when you want:
 - a built dashboard for blocked requests and cache behavior
 - a packaged environment for independent inspection
 
-Use the stdio walkthrough when you want:
+Use the primary stdio path when you want:
 
 - direct validation of the transport boundary
 - proof that blocked traffic fails before tool execution

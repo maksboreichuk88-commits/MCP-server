@@ -11,12 +11,19 @@ Artifact index:
 | Artifact | Location | Reproduction |
 |---|---|---|
 | benchmark JSON snapshot | `docs/STDIO_BENCHMARK_SNAPSHOT.json` | `npm run benchmark:stdio -- --json > evidence.json` |
-| stdio demo transcript | `docs/STDIO_DEMO_TRANSCRIPT.md` | `npm run demo:stdio` |
 | architecture diagram | `docs/ARCHITECTURE.md` | tracked file |
 | client configuration guide | `docs/CLIENT_CONFIGS.md` | tracked file |
 | integration contract | `docs/INTEGRATION_CONTRACT.md` | tracked file |
-| threat-model summary | `docs/THREAT_MODEL_SUMMARY.md` | tracked file |
-| limits and non-goals summary | `docs/LIMITS_AND_NON_GOALS.md` | tracked file |
+| threat model | `docs/THREAT_MODEL.md` | tracked file |
+| validation guide | `docs/VALIDATION_GUIDE.md` | tracked file |
+
+Latest stdio demo summary:
+
+- `npm run demo:stdio` passed
+- first allow request reached the deterministic downstream target
+- second identical allow request matched the first response from cache
+- ShadowLeak sample was denied before downstream execution
+- missing-auth sample was denied at the transport boundary
 
 Validation path:
 

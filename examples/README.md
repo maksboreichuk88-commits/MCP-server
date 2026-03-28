@@ -7,8 +7,8 @@ The delayed target used to reproduce the shutdown-race regression lives in `test
 
 For the canonical published-package examples, see [docs/CLIENT_CONFIGS.md](../docs/CLIENT_CONFIGS.md).
 For the stable runtime contract, see [docs/INTEGRATION_CONTRACT.md](../docs/INTEGRATION_CONTRACT.md).
-For the complete Windows and Linux walkthrough, see [docs/WALKTHROUGH.md](../docs/WALKTHROUGH.md).
-For the repeatable benchmark output, see [docs/EVIDENCE_BENCHMARK.md](../docs/EVIDENCE_BENCHMARK.md) and run `npm run benchmark:stdio`.
+For the shortest validation flow, see [docs/VALIDATION_GUIDE.md](../docs/VALIDATION_GUIDE.md).
+For the repeatable benchmark snapshot and evidence summary, see [docs/STDIO_BENCHMARK_SNAPSHOT.json](../docs/STDIO_BENCHMARK_SNAPSHOT.json) and [docs/ARTIFACT_PACK.md](../docs/ARTIFACT_PACK.md).
 
 Maintained package paths:
 
@@ -65,23 +65,4 @@ npx -y github:shleder/mcp-transport-firewall --help
 ```
 
 
-- `register-route.json`: admin payload for registering a downstream HTTP tool route
-- `tool-call.json`: MCP `tools/call` payload for the HTTP `/mcp` harness
-
-Register a route:
-
-```powershell
-curl.exe -X POST http://localhost:9090/routes `
-  -H "Authorization: Bearer $env:ADMIN_TOKEN" `
-  -H "Content-Type: application/json" `
-  --data @examples/register-route.json
-```
-
-Send a tool call:
-
-```powershell
-curl.exe -X POST http://localhost:3000/mcp `
-  -H "Authorization: Bearer $nhiHeader" `
-  -H "Content-Type: application/json" `
-  --data @examples/tool-call.json
-```
+If you need the HTTP companion harness, use the registered-route and tool-call shapes documented in [docs/INTEGRATION_CONTRACT.md](../docs/INTEGRATION_CONTRACT.md) instead of local payload fixtures.
