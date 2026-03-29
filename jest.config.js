@@ -5,6 +5,12 @@ export default {
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/\\.agent/',
+    '/\\.private-notes/',
+    '/\\.mcp-cache/'
+  ],
   transform: {
     '^.+\\.tsx?$': [
       'ts-jest',
