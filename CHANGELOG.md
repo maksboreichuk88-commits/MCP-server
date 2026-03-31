@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and the project follows semantic versioning.
 
+## 2.2.3 - 2026-03-31
+
+- restores canonical package identity checks for `repository`, `homepage`, and `bugs`
+- adds release guardrails for GitHub tag, GitHub release, and npm registry parity
+- narrows public onboarding around one primary use case: risky local MCP file/search tool calls
+- makes the short `npm run demo:stdio` path the primary proof before broader integration paths
+
 
 - 2.2.2 removes noisy cache-hit stderr output from the runtime path
 - 2.2.2 normalizes remaining compatibility and validation wording in public surfaces

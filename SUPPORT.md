@@ -1,10 +1,11 @@
+# Triage Notes
 
+- usage questions: GitHub issues with the closest template
+- bug reports: GitHub issues with a tight reproduction
+- feature proposals: GitHub issues with the problem and expected outcome
+- security-sensitive findings: use `SECURITY.md` instead of posting exploit detail in an issue
 
-- usage questions: GitHub issues using the most relevant template
-- bug reports: GitHub issues with a reproduction
-- feature proposals: GitHub issues with problem statement and expected outcome
-- security-sensitive findings: follow `SECURITY.md` instead of opening a detailed public issue
-
+Useful context for any report:
 
 - operating system
 - Node.js version
@@ -12,7 +13,6 @@
 - whether you used the stdio runtime, HTTP companion service, or Docker path
 - expected behavior
 - actual behavior
-- logs or screenshots with sensitive data removed
+- sanitized logs or screenshots
 
-
-This is an open-source project. Response times are best-effort. Clear reproductions and narrow bug reports are much easier to triage than broad product requests.
+The fastest path to triage is still a narrow repro with exact inputs and observed output.
