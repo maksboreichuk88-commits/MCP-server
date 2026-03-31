@@ -1,40 +1,37 @@
+Use this page for a protected stdio proxy in front of a local read/search-shaped downstream MCP server.
 
-Use this page when you want a short, reproducible validation path for the **primary stdio boundary**.
+Primary proof path:
 
-
-```powershell
+```bash
 npm install
 npm --prefix ui install
-Copy-Item .env.example .env
-npm run verify:all
-npm run demo:stdio
-npm run benchmark:stdio -- --json > evidence.json
-npm run pack:dry-run
-npm run pack:smoke
-```
-
-Manual stdio launch:
-
-```powershell
 npm run build
-npm run start:cli -- -- node examples/demo-target.js
+npm run demo:stdio
 ```
 
-Expected evidence:
+Expected output:
 
-- the first `search_files` request reaches the target
+```text
+stdio demo passed
+allow: tool=search_files callCount=1
+cache: second response matched first response for tool=search_files
+block: ShadowLeak request denied with code=SHADOWLEAK_DETECTED
+block: missing auth denied with code=AUTH_FAILURE
+```
+
+## What This Proves
+
+- the first `search_files` request reaches the downstream target
 - the second identical `search_files` request is served from cache
-- the `fetch_url` exfiltration sample returns `SHADOWLEAK_DETECTED`
-- the missing-auth sample returns `AUTH_FAILURE`
-- the benchmark JSON packet records zero false positives and zero false negatives
+- the `fetch_url` exfiltration sample is denied before downstream execution
+- the missing-auth sample is denied at the transport boundary
 
+## After the proof
+
+Extended verification path:
 
 ```bash
-npm install
-npm --prefix ui install
-cp .env.example .env
 npm run verify:all
-npm run demo:stdio
 npm run benchmark:stdio -- --json > evidence.json
 npm run pack:dry-run
 npm run pack:smoke
@@ -47,8 +44,7 @@ npm run build
 npm run start:cli -- -- node examples/demo-target.js
 ```
 
-
-If you want the secondary HTTP harness, dashboard, and metrics exporter:
+Secondary HTTP harness, dashboard, and metrics exporter:
 
 ```bash
 docker compose up --build
@@ -57,26 +53,30 @@ curl http://localhost:9090/metrics
 
 The Docker path is useful for observability and packaging validation. The stdio path remains the main proof of transport-boundary enforcement.
 
-
-The intended public CLI contract is:
+Public CLI contract:
 
 ```bash
-npx mcp-transport-firewall
-npx mcp-transport-firewall --help
+npx -y mcp-transport-firewall
+npx -y mcp-transport-firewall --help
 npm install -g mcp-transport-firewall
 ```
 
-Standalone MCP client configuration:
+Recommended client configuration path:
 
 ```json
 {
   "mcpServers": {
-    "transport-firewall": {
+    "protected-local-tooling": {
       "command": "npx",
-      "args": ["-y", "mcp-transport-firewall"]
+      "args": ["-y", "mcp-transport-firewall"],
+      "env": {
+        "PROXY_AUTH_TOKEN": "replace-with-32-byte-secret",
+        "MCP_TARGET_COMMAND": "node",
+        "MCP_TARGET_ARGS_JSON": "[\"C:/absolute/path/to/your-mcp-server.js\"]"
+      }
     }
   }
 }
 ```
 
-When you need to protect a downstream MCP server instead of using the bundled standalone tools, add `MCP_TARGET_COMMAND` plus one of the supported argument variables from the root README.
+When you need a self-contained MCP server without a downstream target, standalone bundled mode is still available through `npx -y mcp-transport-firewall`.

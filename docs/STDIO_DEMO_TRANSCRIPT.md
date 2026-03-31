@@ -1,3 +1,5 @@
+Canonical transcript for the README 60-Second Proof section.
+
 Command:
 
 ```powershell
@@ -14,9 +16,11 @@ block: ShadowLeak request denied with code=SHADOWLEAK_DETECTED
 block: missing auth denied with code=AUTH_FAILURE
 ```
 
-Interpretation:
+What each line proves:
 
-- the first allow request reached the downstream target
+- the first allow request reached the protected downstream target
 - the second identical allow request was served from cache
-- the exfiltration sample was denied before downstream execution
+- the exfiltration-shaped sample was denied before downstream execution
 - the missing-auth sample was denied at the transport boundary
+
+This transcript is the canonical output referenced by the root README proof path.

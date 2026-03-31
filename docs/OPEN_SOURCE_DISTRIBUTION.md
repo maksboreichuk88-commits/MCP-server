@@ -1,10 +1,9 @@
-
 This repository is published as a public defensive security control.
 
 
 - source code is published in a public repository
 - the project is licensed under MIT
-- the public install contract is `npx mcp-transport-firewall` and `npm install -g mcp-transport-firewall`
+- the public install contract is `npx -y mcp-transport-firewall` and `npm install -g mcp-transport-firewall`
 - the full validation environment can be reproduced with `docker compose up --build`
 - test suites, demo paths, and benchmark corpus are included in the repository
 - issue templates, security reporting guidance, and contribution guidance are public
@@ -24,10 +23,16 @@ Public npm publication is gated by:
 
 - semver-tagged releases
 - local verification on the release commit
+- local package metadata assertions before publish
+- pre-publish release parity checks for `package.json.version`, semver tag, and canonical repo lineage
 - repeatable benchmark output
 - tarball smoke execution of the packaged CLI
 - hosted CI publication of evidence artifacts
+- hosted post-publish verification that npm `repository`, `homepage`, `bugs`, and `gitHead` match `shleder/mcp-transport-firewall`
+- release parity across the git tag, GitHub Release, and published npm version
 - synchronized package docs for install, config, and integration behavior
+
+Public release is complete only when the git tag, GitHub Release, and published npm version are identical.
 
 
 - threat model: `docs/THREAT_MODEL.md`

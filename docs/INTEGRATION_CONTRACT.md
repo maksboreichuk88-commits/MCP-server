@@ -1,4 +1,3 @@
-
 Integration Contract
 
 This document defines the stable runtime contract exposed by `mcp-transport-firewall` for package consumers and downstream MCP operators.
@@ -11,7 +10,15 @@ npx -y mcp-transport-firewall --help
 npm install -g mcp-transport-firewall
 ```
 
+Recommended onboarding order
+
+1. prove the boundary locally with `npm run demo:stdio`
+2. integrate protected downstream proxy mode in your MCP client as the primary real integration path
+3. use standalone bundled mode only when you explicitly want embedded status tools without a downstream target
+
 Runtime modes
+
+README positioning: the repository sells protected downstream proxy mode first. Standalone mode is supported, but secondary.
 
 Mode 1: standalone bundled MCP server
 
@@ -100,6 +107,7 @@ Core runtime variables:
 Compatibility notes
 
 - the primary product boundary is stdio
+- the recommended first integration story is protected downstream proxy mode
 - the HTTP `/mcp` service is a compatibility harness that reuses the same trust gates
 - the package remains model-agnostic and transport-focused
 - the documented npm package contract is the canonical install path

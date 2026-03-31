@@ -1,7 +1,7 @@
-
 Canonical Client Configurations
 
-This document defines the package-first client configuration shapes that are kept in sync with the published npm package.
+This document defines the published package onboarding configurations for `mcp-transport-firewall`.
+The default onboarding path is the protected downstream proxy.
 
 All examples assume the public install contract:
 
@@ -10,50 +10,14 @@ npx -y mcp-transport-firewall
 npm install -g mcp-transport-firewall
 ```
 
-Supported package integration paths:
+Recommended onboarding order:
 
-1. standalone bundled MCP server
-2. protected downstream MCP server
-3. protected read-only file and search workflow
+1. protected downstream MCP server
+2. protected local read/search-shaped workflow
+3. standalone bundled MCP server
 4. direct terminal and CLI flow
 
-Standalone bundled MCP server
-
-Use this path when you want a self-contained MCP server with the bundled `firewall_status` and `firewall_usage` tools.
-
-Generic MCP JSON configuration:
-
-```json
-{
-  "mcpServers": {
-    "transport-firewall": {
-      "command": "npx",
-      "args": ["-y", "mcp-transport-firewall"]
-    }
-  }
-}
-```
-
-Desktop-style configuration:
-
-```json
-{
-  "mcpServers": {
-    "transport-firewall": {
-      "command": "npx",
-      "args": ["-y", "mcp-transport-firewall"]
-    }
-  }
-}
-```
-
-What this path does:
-
-- starts the bundled standalone MCP server
-- requires no downstream target command
-- exposes runtime status and launch guidance tools immediately
-
-Protected downstream MCP server
+Protected downstream MCP server (Primary)
 
 Use this path when you already have an MCP server and want the firewall to sit in front of it.
 
@@ -86,9 +50,10 @@ Authentication note:
 
 If `PROXY_AUTH_TOKEN` is configured, client requests must carry `_meta.authorization` in the request body. See `scripts/stdio-demo.mjs` for a concrete Bearer envelope example.
 
-Protected read-only file and search workflow
+Protected local read/search-shaped workflow (Demo)
 
-Use this path when you want a narrow read and search flow backed by the demo target or a similar read-only MCP server.
+Use this path when you want the smallest reproducible protected workflow backed by the demo target or a similar read-only MCP server.
+This is the README proof path, not the primary real install path.
 
 PowerShell launch example:
 
@@ -118,13 +83,30 @@ Example request shape:
 }
 ```
 
-This path is the smallest reproducible flow for:
+This is a read/search-shaped demo path. The bundled `examples/demo-target.js` is a reproducible downstream target for proof and regression testing, not a full filesystem MCP server.
 
-- `search_files`
-- `search`
-- `read_file`
-- `open_file`
-- `list_directory`
+Standalone bundled MCP server
+
+Use this path when you want a self-contained MCP server with the bundled `firewall_status` and `firewall_usage` tools.
+
+Generic MCP JSON configuration:
+
+```json
+{
+  "mcpServers": {
+    "transport-firewall": {
+      "command": "npx",
+      "args": ["-y", "mcp-transport-firewall"]
+    }
+  }
+}
+```
+
+What this path does:
+
+- starts the bundled standalone MCP server
+- requires no downstream target command
+- exposes runtime status and launch guidance tools immediately
 
 Direct terminal and CLI flow
 
@@ -148,10 +130,10 @@ Protected downstream target via `--`:
 npx --yes mcp-transport-firewall -- node examples/demo-target.js
 ```
 
-Repository-head fallback:
+Fallback note:
+
+Use the GitHub repository-head fallback only when you deliberately want the repository HEAD instead of the published npm package:
 
 ```bash
 npx -y github:shleder/mcp-transport-firewall --help
 ```
-
-Use the GitHub fallback only when you deliberately want the repository HEAD instead of the published npm package.
