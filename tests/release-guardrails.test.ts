@@ -117,10 +117,10 @@ describe('release guardrails', () => {
   it('accepts release parity in the expected repo with the expected tag', () => {
     const result = verifyReleaseParity({
       pkg: {
-        version: '2.2.3',
+        version: '2.2.4',
       },
       env: {
-        GITHUB_REF_NAME: 'v2.2.3',
+        GITHUB_REF_NAME: 'v2.2.4',
         GITHUB_REPOSITORY: 'shleder/mcp-transport-firewall',
       },
       readGitFn: (...args: string[]) => {
@@ -132,17 +132,18 @@ describe('release guardrails', () => {
       },
     });
 
-    expect(result.expectedTag).toBe('v2.2.3');
+    expect(result.expectedTag).toBe('v2.2.4');
+    expect(result.normalizedOriginRepository).toBe('shleder/mcp-transport-firewall');
     expect(result.mismatches).toEqual([]);
   });
 
   it('rejects release parity when the repo is not the expected one', () => {
     const result = verifyReleaseParity({
       pkg: {
-        version: '2.2.3',
+        version: '2.2.4',
       },
       env: {
-        GITHUB_REF_NAME: 'v2.2.3',
+        GITHUB_REF_NAME: 'v2.2.4',
         GITHUB_REPOSITORY: 'wrong-owner/mcp-transport-firewall',
       },
       readGitFn: (...args: string[]) => {
@@ -155,5 +156,73 @@ describe('release guardrails', () => {
     });
 
     expect(result.mismatches).toContainEqual(expect.stringContaining('GITHUB_REPOSITORY must be'));
+  });
+
+  it('accepts SSH origin URLs when they resolve to the canonical repository', () => {
+    const result = verifyReleaseParity({
+      pkg: {
+        version: '2.2.4',
+      },
+      env: {
+        GITHUB_REF_NAME: 'v2.2.4',
+        GITHUB_REPOSITORY: 'shleder/mcp-transport-firewall',
+      },
+      readGitFn: (...args: string[]) => {
+        if (args[0] === 'config') {
+          return 'git@github.com:shleder/mcp-transport-firewall.git';
+        }
+
+        return 'abc123';
+      },
+    });
+
+    expect(result.normalizedOriginRepository).toBe('shleder/mcp-transport-firewall');
+    expect(result.mismatches).toEqual([]);
+  });
+
+  it('rejects origins that only contain the canonical repository as a substring', () => {
+    const result = verifyReleaseParity({
+      pkg: {
+        version: '2.2.4',
+      },
+      env: {
+        GITHUB_REF_NAME: 'v2.2.4',
+        GITHUB_REPOSITORY: 'shleder/mcp-transport-firewall',
+      },
+      readGitFn: (...args: string[]) => {
+        if (args[0] === 'config') {
+          return 'https://github.com/notshleder/mcp-transport-firewall.git';
+        }
+
+        return 'abc123';
+      },
+    });
+
+    expect(result.mismatches).toContain(
+      'remote.origin.url must point to shleder/mcp-transport-firewall, got notshleder/mcp-transport-firewall via https://github.com/notshleder/mcp-transport-firewall.git'
+    );
+  });
+
+  it('reports a missing origin remote as a structured mismatch', () => {
+    const result = verifyReleaseParity({
+      pkg: {
+        version: '2.2.4',
+      },
+      env: {
+        GITHUB_REF_NAME: 'v2.2.4',
+        GITHUB_REPOSITORY: 'shleder/mcp-transport-firewall',
+      },
+      readGitFn: (...args: string[]) => {
+        if (args[0] === 'config') {
+          throw new Error('missing origin');
+        }
+
+        return 'abc123';
+      },
+    });
+
+    expect(result.mismatches).toContain(
+      'remote.origin.url is not configured; expected shleder/mcp-transport-firewall'
+    );
   });
 });

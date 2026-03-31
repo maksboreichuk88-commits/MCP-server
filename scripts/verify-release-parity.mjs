@@ -26,6 +26,31 @@ const readGit = (...args) =>
     encoding: 'utf8',
   }).trim();
 
+const normalizeRepositoryUrl = (originUrl) => {
+  const normalizedUrl = originUrl.replace(/^git\+/, '').trim();
+  const sshMatch = normalizedUrl.match(/^git@github\.com:(?<owner>[^/]+)\/(?<repo>[^/]+?)(?:\.git)?$/i);
+
+  if (sshMatch?.groups) {
+    return `${sshMatch.groups.owner}/${sshMatch.groups.repo}`;
+  }
+
+  try {
+    const parsedUrl = new URL(normalizedUrl);
+    if (!/github\.com$/i.test(parsedUrl.hostname)) {
+      return null;
+    }
+
+    const pathMatch = parsedUrl.pathname.match(/^\/(?<owner>[^/]+)\/(?<repo>[^/]+?)(?:\.git)?\/?$/);
+    if (!pathMatch?.groups) {
+      return null;
+    }
+
+    return `${pathMatch.groups.owner}/${pathMatch.groups.repo}`;
+  } catch (error) {
+    return null;
+  }
+};
+
 const appendSummary = (lines) => {
   if (!process.env.GITHUB_STEP_SUMMARY) {
     return;
@@ -48,9 +73,21 @@ export const verifyReleaseParity = ({ pkg, env = process.env, readGitFn = readGi
     mismatches.push(`GITHUB_REPOSITORY must be ${expectedRepository}, got ${env.GITHUB_REPOSITORY}`);
   }
 
-  const originUrl = readGitFn('config', '--get', 'remote.origin.url');
-  if (!originUrl.includes(expectedRepository)) {
-    mismatches.push(`remote.origin.url must point to ${expectedRepository}, got ${originUrl}`);
+  let originUrl = '';
+  let normalizedOriginRepository = null;
+
+  try {
+    originUrl = readGitFn('config', '--get', 'remote.origin.url');
+    normalizedOriginRepository = normalizeRepositoryUrl(originUrl);
+  } catch (error) {
+    mismatches.push(`remote.origin.url is not configured; expected ${expectedRepository}`);
+  }
+
+  if (originUrl && normalizedOriginRepository !== expectedRepository) {
+    const detail = normalizedOriginRepository
+      ? `${normalizedOriginRepository} via ${originUrl}`
+      : originUrl;
+    mismatches.push(`remote.origin.url must point to ${expectedRepository}, got ${detail}`);
   }
 
   let tagSha = '';
@@ -68,6 +105,7 @@ export const verifyReleaseParity = ({ pkg, env = process.env, readGitFn = readGi
     expectedTag,
     actualTag,
     originUrl,
+    normalizedOriginRepository,
     tagSha,
     mismatches,
   };
