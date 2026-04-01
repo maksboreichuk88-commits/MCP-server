@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
-import { EpistemicSecurityException } from '../errors.js';
+import { RequestPolicyError } from '../errors.js';
 import { auditLogWithSIEM } from '../utils/auditLogger.js';
 import { getOrCreateCircuitBreaker, CircuitOpenError } from '../proxy/circuit-breaker.js';
 
-const ettCircuitBreaker = getOrCreateCircuitBreaker({
-  name: 'ETT_Breaker',
+const semanticRiskCircuitBreaker = getOrCreateCircuitBreaker({
+  name: 'SemanticRiskBreaker',
   failureThreshold: 3,
   resetTimeoutMs: 60000,
   halfOpenMaxCalls: 1,
@@ -32,7 +32,7 @@ const SHELL_INJECTION_PATTERNS: RegExp[] = [
   /&&\s*(rm|curl|wget|bash|sh)\b/,
 ];
 
-const EPISTEMIC_CONTRADICTION_PATTERNS: RegExp[] = [
+const SEMANTIC_RISK_PATTERNS: RegExp[] = [
   /\b(uncertain|hallucinat|contradict|ignore previous|not sure)\b/i,
 ];
 
@@ -93,8 +93,8 @@ const detectShellInjection = (value: string): string | null => {
   return null;
 };
 
-const detectEpistemicContradiction = (value: string): string | null => {
-  for (const pattern of EPISTEMIC_CONTRADICTION_PATTERNS) {
+const detectSemanticRisk = (value: string): string | null => {
+  for (const pattern of SEMANTIC_RISK_PATTERNS) {
     if (pattern.test(value)) {
       return pattern.source;
     }
@@ -107,7 +107,7 @@ export const validateAstEgress = async (
   ip = 'unknown',
   requestPath = '/mcp'
 ): Promise<void> => {
-  await ettCircuitBreaker.execute(async () => {
+  await semanticRiskCircuitBreaker.execute(async () => {
     const allValues = extractAllStringValues(body);
 
     if (allValues.length === 0) {
@@ -116,7 +116,7 @@ export const validateAstEgress = async (
 
     for (const value of allValues) {
       if (detectShadowLeak(value)) {
-        const ex = new EpistemicSecurityException(
+        const ex = new RequestPolicyError(
           'Egress violation: character-by-character exfiltration pattern detected in URL parameters.',
           'SHADOWLEAK_DETECTED'
         );
@@ -131,7 +131,7 @@ export const validateAstEgress = async (
 
       const sensitiveMatch = detectSensitivePath(value);
       if (sensitiveMatch !== null) {
-        const ex = new EpistemicSecurityException(
+        const ex = new RequestPolicyError(
           `Egress violation: access to sensitive system paths is forbidden. Pattern matched: ${sensitiveMatch}`,
           'SENSITIVE_PATH_BLOCKED'
         );
@@ -146,7 +146,7 @@ export const validateAstEgress = async (
 
       const shellMatch = detectShellInjection(value);
       if (shellMatch !== null) {
-        const ex = new EpistemicSecurityException(
+        const ex = new RequestPolicyError(
           `Egress violation: shell injection pattern detected. Pattern matched: ${shellMatch}`,
           'SHELL_INJECTION_BLOCKED'
         );
@@ -159,13 +159,13 @@ export const validateAstEgress = async (
         throw ex;
       }
 
-      const epistemicMatch = detectEpistemicContradiction(value);
-      if (epistemicMatch !== null) {
-        const ex = new EpistemicSecurityException(
-          `Epistemic Termination Trigger (ETT): request semantics indicate uncertainty or hallucination. Pattern matched: ${epistemicMatch}`,
-          'EPISTEMIC_CONTRADICTION_DETECTED'
+      const semanticRiskMatch = detectSemanticRisk(value);
+      if (semanticRiskMatch !== null) {
+        const ex = new RequestPolicyError(
+          `Request blocked: content indicates semantic risk. Pattern matched: ${semanticRiskMatch}`,
+          'SEMANTIC_RISK_DETECTED'
         );
-        auditLogWithSIEM('ETT_TRIGGER', {
+        auditLogWithSIEM('SEMANTIC_RISK_TRIGGER', {
           reason: ex.message,
           code: ex.code,
           ip,
@@ -183,24 +183,24 @@ export const astEgressFilter = async (req: Request, res: Response, next: NextFun
     next();
   } catch (error: unknown) {
     if (error instanceof CircuitOpenError) {
-      auditLogWithSIEM('ETT_CIRCUIT_OPEN', {
+      auditLogWithSIEM('SEMANTIC_RISK_CIRCUIT_OPEN', {
         reason: error.message,
         ip: req.ip,
       });
       res.status(403).json({
         error: {
-          code: 'ETT_CIRCUIT_OPEN',
+          code: 'SEMANTIC_RISK_CIRCUIT_OPEN',
           message: error.message,
         },
       });
       return;
     }
-    if (error instanceof EpistemicSecurityException) {
+    if (error instanceof RequestPolicyError) {
       next(error);
       return;
     }
-    const ex = new EpistemicSecurityException(
-      'Egress filter encountered an unexpected error. Request denied (Fail-Closed).',
+    const ex = new RequestPolicyError(
+      'Egress filter encountered an unexpected error. Request denied.',
       'EGRESS_VIOLATION'
     );
     auditLogWithSIEM('EGRESS_FILTER_ERROR', {

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { TrustGateError } from '../errors.js';
+import { AccessPolicyError } from '../errors.js';
 import { auditLogWithSIEM } from '../utils/auditLogger.js';
 import { extractToolInvocations } from '../utils/mcp-request.js';
 
@@ -42,7 +42,7 @@ export const validateSchema = (
               path: requestPath,
             });
 
-            throw new TrustGateError(
+            throw new AccessPolicyError(
               'Fail-Closed: Payload arguments rejected due to strict schema mismatch or prompt injection. Access Denied.',
               'SCHEMA_VALIDATION_FAILED',
               403
@@ -54,7 +54,7 @@ export const validateSchema = (
       }
     }
   } catch (error: unknown) {
-    if (error instanceof TrustGateError) {
+    if (error instanceof AccessPolicyError) {
       throw error;
     }
 
@@ -63,7 +63,7 @@ export const validateSchema = (
       ip,
     });
 
-    throw new TrustGateError(
+    throw new AccessPolicyError(
       'An unexpected error occurred during Progressive Disclosure validation.',
       'INTERNAL_SERVER_ERROR',
       500
@@ -77,7 +77,7 @@ export const createSchemaValidator = (registry: ToolSchemaRegistry) => {
       validateSchema(req.body as Record<string, unknown>, registry, req.ip, req.path);
       next();
     } catch (error: unknown) {
-      if (error instanceof TrustGateError) {
+      if (error instanceof AccessPolicyError) {
         res.status(error.status).json({
           error: {
             code: error.code,

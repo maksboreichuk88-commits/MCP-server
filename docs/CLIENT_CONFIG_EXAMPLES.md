@@ -98,7 +98,7 @@ This path:
 
 - starts the bundled standalone MCP server
 - needs no downstream target command
-- exposes runtime status and launch guidance tools immediately
+- exposes runtime status and usage help tools immediately
 
 ## Direct terminal and CLI flow
 

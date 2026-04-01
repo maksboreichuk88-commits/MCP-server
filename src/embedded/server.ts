@@ -41,7 +41,7 @@ export const startEmbeddedMcpServer = async (): Promise<void> => {
   server.registerTool(
     'firewall_status',
     {
-      description: 'Return runtime status for the bundled standalone MCP server exposed by mcp-transport-firewall.',
+      description: 'Return runtime status for the bundled standalone MCP server provided by mcp-transport-firewall.',
     },
     async () => {
       const status = {
@@ -64,7 +64,7 @@ export const startEmbeddedMcpServer = async (): Promise<void> => {
         content: createTextContent(
           [
             `${packageName} ${packageVersion}`,
-            'Mode: standalone embedded MCP server',
+            'Mode: standalone MCP server',
             'Transport: stdio',
             `Admin enabled: ${status.adminEnabled}`,
             `Proxy auth configured: ${status.proxyAuthConfigured}`,
@@ -78,7 +78,7 @@ export const startEmbeddedMcpServer = async (): Promise<void> => {
   server.registerTool(
     'firewall_usage',
     {
-      description: 'Return launch guidance for standalone mode and downstream proxy mode.',
+      description: 'Return usage help for standalone mode and proxy mode.',
     },
     async () => {
       const usage = {
@@ -101,7 +101,7 @@ export const startEmbeddedMcpServer = async (): Promise<void> => {
             'Standalone mode:',
             '  npx mcp-transport-firewall',
             '',
-            'Protected downstream proxy mode:',
+            'Proxy mode:',
             '  command: npx mcp-transport-firewall',
             '  env: PROXY_AUTH_TOKEN + one of MCP_TARGET_COMMAND/MCP_TARGET',
           ].join('\n'),

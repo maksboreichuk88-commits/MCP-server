@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { TrustGateError } from '../errors.js';
+import { AccessPolicyError } from '../errors.js';
 import { auditLogWithSIEM } from '../utils/auditLogger.js';
 import { extractToolInvocations } from '../utils/mcp-request.js';
 
@@ -64,7 +64,7 @@ export const validatePreflight = (body: Record<string, unknown>, ip = 'unknown')
         toolName: tool.name ?? 'unknown',
         ip,
       });
-      throw new TrustGateError(
+      throw new AccessPolicyError(
         `Fail-Closed: Blue tool "${tool.name ?? 'unknown'}" requires a valid preflightId.`,
         'PREFLIGHT_REQUIRED',
         403
@@ -78,7 +78,7 @@ export const validatePreflight = (body: Record<string, unknown>, ip = 'unknown')
         toolName: tool.name ?? 'unknown',
         ip,
       });
-      throw new TrustGateError(
+      throw new AccessPolicyError(
         'Fail-Closed: this preflightId has already been used. Replay attacks are blocked.',
         'PREFLIGHT_ALREADY_USED',
         403
@@ -93,7 +93,7 @@ export const validatePreflight = (body: Record<string, unknown>, ip = 'unknown')
         toolName: tool.name ?? 'unknown',
         ip,
       });
-      throw new TrustGateError(
+      throw new AccessPolicyError(
         'Fail-Closed: preflightId is not registered or has expired. Request denied.',
         'PREFLIGHT_NOT_FOUND',
         403
@@ -110,7 +110,7 @@ export const preflightValidator = (req: Request, res: Response, next: NextFuncti
     validatePreflight(req.body as Record<string, unknown>, req.ip);
     next();
   } catch (error: unknown) {
-    if (error instanceof TrustGateError) {
+    if (error instanceof AccessPolicyError) {
       res.status(error.status).json({
         error: {
           code: error.code,

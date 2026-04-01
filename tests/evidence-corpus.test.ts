@@ -47,7 +47,7 @@ describe('stdio evidence corpus', () => {
     }
   });
 
-  it('retains coverage for expanded trust-gate categories', () => {
+  it('retains coverage for expanded policy-check categories', () => {
     const expectedCodes = new Set(
       cases
         .map((benchmarkCase) => benchmarkCase.expectedCode)
@@ -66,6 +66,6 @@ describe('stdio evidence corpus', () => {
     expect(expectedCodes.has('CROSS_TOOL_HIJACK_ATTEMPT')).toBe(true);
     expect(expectedCodes.has('PREFLIGHT_REQUIRED')).toBe(true);
     expect(expectedCodes.has('PREFLIGHT_NOT_FOUND')).toBe(true);
-    expect(expectedCodes.has('EPISTEMIC_CONTRADICTION_DETECTED')).toBe(true);
+    expect(expectedCodes.has('SEMANTIC_RISK_DETECTED')).toBe(true);
   });
 });

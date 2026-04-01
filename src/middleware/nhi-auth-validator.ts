@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { TrustGateError } from '../errors.js';
+import { AccessPolicyError } from '../errors.js';
 import { writeAuditLog, auditLogWithSIEM } from '../utils/auditLogger.js';
 import { extractAuthorizationFromBody } from '../utils/mcp-request.js';
 
@@ -25,17 +25,17 @@ export const parseNhiAuthorizationHeader = (
 ): ParsedNhiToken => {
   if (!serverToken) {
     auditLogWithSIEM('AUTH_FAILURE', { reason: 'Fail-Closed: PROXY_AUTH_TOKEN not configured', ip });
-    throw new TrustGateError('Fail-Closed: Server token is not configured.', 'AUTH_FAILURE', 401);
+    throw new AccessPolicyError('Fail-Closed: Server token is not configured.', 'AUTH_FAILURE', 401);
   }
 
   if (!ServerTokenSchema.safeParse(serverToken).success) {
     auditLogWithSIEM('AUTH_FAILURE', { reason: 'Fail-Closed: Server token is invalid', ip });
-    throw new TrustGateError('Fail-Closed: Server token configuration is invalid.', 'AUTH_FAILURE', 401);
+    throw new AccessPolicyError('Fail-Closed: Server token configuration is invalid.', 'AUTH_FAILURE', 401);
   }
 
   if (!authHeader || typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
     auditLogWithSIEM('AUTH_FAILURE', { reason: 'Missing or invalid Authorization header scheme', ip });
-    throw new TrustGateError('Valid Bearer authentication is required.', 'AUTH_FAILURE', 401);
+    throw new AccessPolicyError('Valid Bearer authentication is required.', 'AUTH_FAILURE', 401);
   }
 
   const base64Payload = authHeader.slice(7);
@@ -47,18 +47,18 @@ export const parseNhiAuthorizationHeader = (
 
     if (nhiPayload.token.length !== serverToken.length || nhiPayload.token !== serverToken) {
       auditLogWithSIEM('AUTH_FAILURE', { reason: 'Token mismatch', ip });
-      throw new TrustGateError('Invalid authentication token.', 'AUTH_FAILURE', 401);
+      throw new AccessPolicyError('Invalid authentication token.', 'AUTH_FAILURE', 401);
     }
 
     writeAuditLog('AUTH_SUCCESS', { ip, scopes: nhiPayload.scopes });
     return nhiPayload;
   } catch (error: unknown) {
-    if (error instanceof TrustGateError) {
+    if (error instanceof AccessPolicyError) {
       throw error;
     }
 
     auditLogWithSIEM('AUTH_FAILURE', { reason: 'Invalid NHI Base64 JSON token structure', ip });
-    throw new TrustGateError(
+    throw new AccessPolicyError(
       'Fail-Closed: Client NHI token structure is invalid or decoding failed.',
       'AUTH_FAILURE',
       401
@@ -80,7 +80,7 @@ export const nhiAuthValidator = (req: Request, res: Response, next: NextFunction
     req.nhiScopes = nhiPayload.scopes;
     next();
   } catch (error: unknown) {
-    if (error instanceof TrustGateError) {
+    if (error instanceof AccessPolicyError) {
       res.status(error.status).json({ error: { code: error.code, message: error.message } });
       return;
     }

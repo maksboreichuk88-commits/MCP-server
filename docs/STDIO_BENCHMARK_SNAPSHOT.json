@@ -2,8 +2,8 @@
   "benchmark": "stdio-evidence-benchmark",
   "description": "Repeatable validation corpus for fail-closed stdio evidence and false-positive measurement.",
   "source": "examples\\evidence-corpus.json",
-  "startedAt": "2026-03-28T11:44:46.316Z",
-  "finishedAt": "2026-03-28T11:44:54.552Z",
+  "startedAt": "2026-04-01T17:22:15.679Z",
+  "finishedAt": "2026-04-01T17:22:29.543Z",
   "verdict": "passed",
   "cases": [
     {
@@ -267,15 +267,15 @@
       ]
     },
     {
-      "id": "block-ett-contradiction-search-files",
+      "id": "block-semantic-risk-search-files",
       "kind": "block",
       "repeat": 1,
-      "expectedCode": "EPISTEMIC_CONTRADICTION_DETECTED",
+      "expectedCode": "SEMANTIC_RISK_DETECTED",
       "requests": [
         {
           "id": 15,
           "status": "blocked",
-          "errorCode": "EPISTEMIC_CONTRADICTION_DETECTED"
+          "errorCode": "SEMANTIC_RISK_DETECTED"
         }
       ]
     },
@@ -385,7 +385,7 @@
     "SHADOWLEAK_DETECTED": 1,
     "SENSITIVE_PATH_BLOCKED": 2,
     "SHELL_INJECTION_BLOCKED": 1,
-    "EPISTEMIC_CONTRADICTION_DETECTED": 1,
+    "SEMANTIC_RISK_DETECTED": 1,
     "AUTH_FAILURE": 1,
     "MISSING_SCOPE": 1,
     "SCHEMA_VALIDATION_FAILED": 2,

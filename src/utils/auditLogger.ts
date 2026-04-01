@@ -39,7 +39,6 @@ const blockedRequestCodes = new Set([
   'CIRCUIT_OPEN',
   'CROSS_TOOL_HIJACK',
   'CROSS_TOOL_HIJACK_SESSION',
-  'ETT_TRIGGER',
   'FIREWALL_BLOCK',
   'INVALID_MCP_REQUEST',
   'INVALID_REQUEST',
@@ -50,14 +49,16 @@ const blockedRequestCodes = new Set([
   'RATE_LIMIT_EXCEEDED',
   'SCHEMA_VALIDATION_FAILURE',
   'SCHEMA_VALIDATION_FAILED',
+  'SEMANTIC_RISK_CIRCUIT_OPEN',
+  'SEMANTIC_RISK_TRIGGER',
   'TARGET_UNREACHABLE',
   'UNKNOWN_ROUTE',
   'UNAUTHORIZED',
 ]);
 
 const blockedRequestWrapperEvents = new Set([
-  'HARD_HALT',
-  'TRUST_GATE_BLOCK',
+  'REQUEST_BLOCKED',
+  'SECURITY_POLICY_BLOCK',
 ]);
 
 const blockedMetricsState = {
