@@ -98,7 +98,7 @@ export const renderPrometheusMetrics = (): string => {
     ),
     ...renderMetric(
       'mcp_firewall_blocked_requests_total',
-      'Total requests blocked by fail-closed trust gates.',
+      'Total requests blocked by fail-closed policy checks.',
       'counter',
       { value: blockedRequests.total },
     ),

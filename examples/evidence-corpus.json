@@ -197,9 +197,9 @@
       }
     },
     {
-      "id": "block-ett-contradiction-search-files",
+      "id": "block-semantic-risk-search-files",
       "kind": "block",
-      "expectedCode": "EPISTEMIC_CONTRADICTION_DETECTED",
+      "expectedCode": "SEMANTIC_RISK_DETECTED",
       "auth": {
         "type": "nhi",
         "scopes": [

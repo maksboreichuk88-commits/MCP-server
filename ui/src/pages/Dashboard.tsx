@@ -17,6 +17,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/Card';
 import { api } from '../services/api';
 import type { ProxyStats, CircuitBreakerStats } from '../types/api';
 import { clsx } from 'clsx';
+import packageManifest from '../../../package.json';
+
+const appVersion = packageManifest.version;
 
 export default function Dashboard() {
   const [stats, setStats] = useState<ProxyStats | null>(null);
@@ -110,7 +113,7 @@ export default function Dashboard() {
             <Shield className="w-8 h-8 text-blue-500" />
             <div>
               <h1 className="text-2xl font-bold">MCP Transport Firewall</h1>
-              <p className="text-sm text-gray-400">Fail-Closed Stdio Boundary Enforcement</p>
+              <p className="text-sm text-gray-400">Fail-closed stdio protection for local MCP tool calls</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -258,7 +261,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50">
                   <div className="flex items-center gap-3">
                     <Zap className="w-5 h-5 text-gray-400" />
-                    <span>Epistemic Egress Filter</span>
+                    <span>Semantic Risk Filter</span>
                   </div>
                   <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400">
                     Active
@@ -407,8 +410,8 @@ export default function Dashboard() {
         </Card>
 
         <footer className="text-center text-gray-600 text-sm pt-4 border-t border-gray-800">
-          <p>MCP Transport Firewall v2.2.2</p>
-          <p className="text-xs mt-1">Fail-closed stdio firewall with an HTTP compatibility harness</p>
+          <p>MCP Transport Firewall v{appVersion}</p>
+          <p className="text-xs mt-1">Fail-closed stdio firewall with an HTTP MCP API</p>
         </footer>
       </div>
     </div>

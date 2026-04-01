@@ -16,11 +16,11 @@ Usage:
 
 Modes:
   no target supplied      start the bundled standalone MCP server
-  target supplied         wrap a downstream MCP server behind the fail-closed stdio firewall
+  target supplied         wrap a downstream MCP server behind the fail-closed stdio proxy
 
 Standalone tools:
   firewall_status         runtime status and deployment flags
-  firewall_usage          launch guidance for standalone and downstream proxy mode
+  firewall_usage          usage help for standalone mode and proxy mode
 
 Environment:
   PROXY_AUTH_TOKEN        Optional NHI secret for fail-closed auth
@@ -28,7 +28,7 @@ Environment:
   MCP_TARGET_ARGS_JSON    JSON array of target args for MCP_TARGET_COMMAND
   MCP_TARGET_ARGS         Space-delimited fallback for target args
   MCP_TARGET              Full target command string fallback
-  MCP_TARGET_TIMEOUT_MS   Downstream response timeout in milliseconds
+  MCP_TARGET_TIMEOUT_MS   Target response timeout in milliseconds
   MCP_ADMIN_ENABLED       Start admin API/dashboard when set to true
   MCP_ADMIN_PORT          Admin API port, default 9090
   MCP_CACHE_DIR           Persistent cache directory

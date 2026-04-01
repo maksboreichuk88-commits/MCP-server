@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { TrustGateError } from '../errors.js';
+import { AccessPolicyError } from '../errors.js';
 import { auditLogWithSIEM } from '../utils/auditLogger.js';
 import { extractToolInvocations } from '../utils/mcp-request.js';
 
@@ -18,15 +18,15 @@ export const validateScopes = (
 
     if (!availableScopes.includes(requiredScope) && !availableScopes.includes('tools.*')) {
       auditLogWithSIEM('MISSING_SCOPE', {
-        reason: 'Agent attempted to call a tool without the required NHI scope',
+        reason: 'Client attempted to call a tool without the required NHI scope',
         toolName,
         requiredScope,
         availableScopes,
         ip,
       });
 
-      throw new TrustGateError(
-        `Fail-Closed: NHI token lacks the required scope '${requiredScope}' for tool '${toolName}'.`,
+      throw new AccessPolicyError(
+        `Request denied: NHI token lacks the required scope '${requiredScope}' for tool '${toolName}'.`,
         'MISSING_SCOPE',
         403,
         { toolName, requiredScope }
@@ -40,7 +40,7 @@ export const scopeValidator = (req: Request, res: Response, next: NextFunction):
     validateScopes(req.body as Record<string, unknown>, req.nhiScopes ?? [], req.ip);
     next();
   } catch (error: unknown) {
-    if (error instanceof TrustGateError) {
+    if (error instanceof AccessPolicyError) {
       res.status(error.status).json({
         error: {
           code: error.code,
@@ -53,7 +53,7 @@ export const scopeValidator = (req: Request, res: Response, next: NextFunction):
     res.status(403).json({
       error: {
         code: 'MISSING_SCOPE',
-        message: 'Fail-Closed: scope validation failed.',
+        message: 'Request denied: scope validation failed.',
       },
     });
   }

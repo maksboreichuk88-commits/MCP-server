@@ -36,7 +36,7 @@ The current corpus covers:
 - sensitive-path `read_file`
 - sensitive-path `write_file`
 - shell-injection `execute_command`
-- epistemic-contradiction denial on `search_files`
+- semantic-risk denial on `search_files`
 - missing-authorization `search_files`
 - missing-scope denial on `execute_command`
 - strict schema rejection for invalid `fetch_url`

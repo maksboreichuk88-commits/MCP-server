@@ -13,7 +13,7 @@ npm install -g mcp-transport-firewall
 Recommended order:
 
 1. prove the boundary locally with `npm run demo:stdio`
-2. wire protected downstream proxy mode into your MCP client
+2. wire proxy mode into your MCP client
 3. use standalone bundled mode only when you want embedded status tools without a downstream target
 
 ## Runtime modes
@@ -101,6 +101,6 @@ Observed denial surfaces include:
 ## Notes
 
 - the main protected boundary is stdio
-- the first integration story is protected downstream proxy mode
-- the HTTP `/mcp` service is a compatibility harness that reuses the same trust gates
+- the first integration story is proxy mode
+- the HTTP `/mcp` service is an API surface that reuses the same trust gates
 - documented examples in `docs/CLIENT_CONFIG_EXAMPLES.md` should stay runnable against the current package

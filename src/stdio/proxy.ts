@@ -6,7 +6,7 @@ import { CacheManager, initializeCache } from '../cache/index.js';
 import { stopAdminServer, startAdminServer } from '../admin/index.js';
 import { CircuitOpenError } from '../proxy/circuit-breaker.js';
 import { sanitizeResponse } from '../proxy/shadow-leak-sanitizer.js';
-import { EpistemicSecurityException, TrustGateError } from '../errors.js';
+import { RequestPolicyError, AccessPolicyError } from '../errors.js';
 import { validateAstEgress } from '../middleware/ast-egress-filter.js';
 import { validateColorBoundary } from '../middleware/color-boundary.js';
 import { recordStdioMcpRequest } from '../metrics/prometheus.js';
@@ -99,10 +99,10 @@ const buildRpcErrorResponse = (id: JsonRpcId, code: number, message: string, dat
 };
 
 const toRpcError = (id: JsonRpcId, error: unknown): JsonRpcResponse => {
-  if (error instanceof TrustGateError) {
+  if (error instanceof AccessPolicyError) {
     return buildRpcErrorResponse(id, -32001, error.message, { code: error.code, details: error.details });
   }
-  if (error instanceof EpistemicSecurityException) {
+  if (error instanceof RequestPolicyError) {
     return buildRpcErrorResponse(id, -32002, error.message, { code: error.code });
   }
   if (error instanceof CircuitOpenError) {

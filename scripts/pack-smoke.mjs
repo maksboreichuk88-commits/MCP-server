@@ -121,7 +121,7 @@ const ensureStandaloneMcpServer = async (tarballPath) => {
     });
 
     const textBlock = status.content.find((item) => item.type === 'text');
-    if (!textBlock || !textBlock.text.includes('standalone embedded MCP server')) {
+    if (!textBlock || !textBlock.text.includes('Mode: standalone MCP server')) {
       throw new Error('Standalone bundled tool did not return the expected status text.');
     }
   } finally {

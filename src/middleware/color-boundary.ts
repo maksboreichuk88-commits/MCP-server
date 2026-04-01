@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { TrustGateError } from '../errors.js';
+import { AccessPolicyError } from '../errors.js';
 import { extractToolInvocations } from '../utils/mcp-request.js';
 
 const writeAuditLog = (event: string, details: Record<string, unknown>): void => {
@@ -39,7 +39,7 @@ export const validateColorBoundary = (
       ip,
     });
 
-    throw new TrustGateError(
+    throw new AccessPolicyError(
       `Cross-Tool Hijack Attempt detected. RED tools: [${redTools.join(', ')}], BLUE tools: [${blueTools.join(', ')}]`,
       'CROSS_TOOL_HIJACK_ATTEMPT',
       403,
@@ -53,7 +53,7 @@ export const validateColorBoundary = (
 
   if (hasRed && establishedColor === 'blue') {
     writeAuditLog('CROSS_TOOL_HIJACK_SESSION', { redTools, establishedColor, ip });
-    throw new TrustGateError(
+    throw new AccessPolicyError(
       `Cross-Tool Hijack Attempt detected (Session limits to BLUE). Attempted RED tools: [${redTools.join(', ')}]`,
       'CROSS_TOOL_HIJACK_ATTEMPT',
       403,
@@ -63,7 +63,7 @@ export const validateColorBoundary = (
 
   if (hasBlue && establishedColor === 'red') {
     writeAuditLog('CROSS_TOOL_HIJACK_SESSION', { blueTools, establishedColor, ip });
-    throw new TrustGateError(
+    throw new AccessPolicyError(
       `Cross-Tool Hijack Attempt detected (Session limits to RED). Attempted BLUE tools: [${blueTools.join(', ')}]`,
       'CROSS_TOOL_HIJACK_ATTEMPT',
       403,
@@ -80,7 +80,7 @@ export const mcpColorBoundary = (req: Request, res: Response, next: NextFunction
     validateColorBoundary(req.body as Record<string, unknown>, req.ip || 'unknown', req.ip);
     next();
   } catch (error: unknown) {
-    if (error instanceof TrustGateError) {
+    if (error instanceof AccessPolicyError) {
       res.status(error.status).json({
         error: {
           code: error.code,

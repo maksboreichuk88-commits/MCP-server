@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
-import { EpistemicSecurityException, TrustGateError } from '../errors.js';
+import { RequestPolicyError, AccessPolicyError } from '../errors.js';
 import { auditLogWithSIEM } from '../utils/auditLogger.js';
 
 export const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction): void => {
-  if (err instanceof EpistemicSecurityException) {
-    auditLogWithSIEM('HARD_HALT', {
+  if (err instanceof RequestPolicyError) {
+    auditLogWithSIEM('REQUEST_BLOCKED', {
       reason: err.message,
       code: err.code,
       ip: req.ip,
@@ -14,14 +14,14 @@ export const errorHandler = (err: Error, req: Request, res: Response, next: Next
     res.status(403).json({
       error: {
         code: err.code,
-        message: `Hard Halt Triggered: ${err.message}`,
+        message: err.message,
       },
     });
     return;
   }
 
-  if (err instanceof TrustGateError) {
-    auditLogWithSIEM('TRUST_GATE_BLOCK', {
+  if (err instanceof AccessPolicyError) {
+    auditLogWithSIEM('SECURITY_POLICY_BLOCK', {
       reason: err.message,
       code: err.code,
       ip: req.ip,
@@ -48,7 +48,7 @@ export const errorHandler = (err: Error, req: Request, res: Response, next: Next
   res.status(500).json({
     error: {
       code: 'INTERNAL_SERVER_ERROR',
-      message: 'An unexpected internal error occurred (Fail-Closed).',
+      message: 'Internal server error. Request denied.',
     },
   });
 };
