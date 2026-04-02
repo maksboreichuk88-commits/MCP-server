@@ -226,6 +226,30 @@ describe('stdio firewall proxy', () => {
     expect((response.error as { data?: { code?: string } }).data?.code).toBe('AUTH_FAILURE');
   });
 
+  it('fails closed on execute_command without preflight even when no color is declared', async () => {
+    const request = {
+      jsonrpc: '2.0',
+      id: 13,
+      method: 'tools/call',
+      params: {
+        name: 'execute_command',
+        arguments: {
+          command: 'node',
+          args: ['--version'],
+        },
+        _meta: {
+          authorization: createNhiAuthorization(['tools.execute_command']),
+        },
+      },
+    };
+
+    clientInput.write(JSON.stringify(request) + '\n');
+    const response = await waitForJsonLine(clientOutput);
+
+    expect(response.error).toBeDefined();
+    expect((response.error as { data?: { code?: string } }).data?.code).toBe('PREFLIGHT_REQUIRED');
+  });
+
   it('drains an in-flight response before stopping when client stdin closes', async () => {
     await proxy.stop();
 

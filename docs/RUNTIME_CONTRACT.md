@@ -51,7 +51,7 @@ Mode 2: protected downstream proxy
 1. shared-secret authorization and scope extraction
 2. scope validation
 3. color-boundary validation
-4. preflight validation for `blue` actions
+4. preflight validation for explicit `blue` actions and default high-trust tool families
 5. strict schema validation for registered tool contracts
 6. egress and injection marker validation
 

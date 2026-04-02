@@ -38,7 +38,7 @@ This includes indirect prompt-injection traffic only to the extent that it appea
 | `nhi-auth-validator` | Is the caller carrying the expected shared secret and declared scopes? | deny request |
 | `scope-validator` | Is the requested tool inside the declared scope set? | deny request |
 | `color-boundary` | Does the request mix incompatible trust domains or flip an established session color? | deny request |
-| `preflight-validator` | Does a high-trust (`blue`) action carry a valid one-time preflight ID? | deny request |
+| `preflight-validator` | Does an explicit or default high-trust action carry a valid one-time preflight ID? | deny request |
 | `schema-validator` | Do registered tool arguments match a strict contract? | deny request |
 | `ast-egress-filter` | Do request strings match exfiltration, sensitive-path, shell-injection, or epistemic-risk markers? | deny request |
 
