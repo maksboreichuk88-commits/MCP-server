@@ -16,20 +16,21 @@ Maintained package paths:
 2. demo path: protected local read/search workflow via `examples/demo-target.js`
 3. secondary standalone path: bundled MCP mode via `npx -y mcp-transport-firewall`
 
-Repo-local demo path:
+Canonical repo-local proof path:
 
 ```bash
+npm install
 npm run build
 npm run demo:stdio
 ```
 
-Manual interactive path:
+Manual interactive proof path:
 
 ```bash
 npm run start:cli -- -- node examples/demo-target.js
 ```
 
-MCP client configuration path:
+Canonical MCP client configuration path:
 
 ```json
 {
@@ -59,12 +60,6 @@ npx --yes mcp-transport-firewall
 ```
 
 This uses a reproducible demo target for proof and regression coverage. It is not a full filesystem MCP server.
-
-Use the GitHub fallback only when you intentionally want repository HEAD instead of the npm package:
-
-```bash
-npx -y github:shleder/mcp-transport-firewall --help
-```
 
 Secondary HTTP harness artifacts:
 

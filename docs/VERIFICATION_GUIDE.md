@@ -4,7 +4,17 @@ Updated: 2026-04-02
 
 This repository is easiest to verify as a reproducible transport control, not as a polished product demo.
 
-Recommended verification flow:
+## Short proof path
+
+Use this when you want the smallest repo-local proof of the main workflow:
+
+1. run `npm install`
+2. run `npm run build`
+3. run `npm run demo:stdio`
+
+That path proves one protected local filesystem/search-style workflow over `stdio`: safe `search_files` traffic reaches the downstream target, repeated allow traffic can be cached, and risky traffic is blocked before downstream execution.
+
+## Full verification flow
 
 1. inspect the risk model in [RISK_MODEL.md](RISK_MODEL.md)
 2. inspect the local setup examples in [CLIENT_CONFIG_EXAMPLES.md](CLIENT_CONFIG_EXAMPLES.md)

@@ -15,42 +15,9 @@
 
 `mcp-transport-firewall` sits between a coding-agent client and a local downstream MCP server. It inspects `tools/call` over `stdio`, lets read/search-shaped requests continue, and blocks risky exfiltration, path, and shell-style patterns before they reach the target.
 
-## Best For
+The primary story in this repository is one protected local filesystem/search-style workflow over `stdio`.
 
-- individual Codex and Claude Code users who already run local MCP servers
-- local MCP-enabled coding workflows that should not run high-risk calls blindly
-- file, read, list, and search-oriented downstream MCP servers
-- teams that want a fail-closed transport control before downstream execution
-
-## 60-Second Proof
-
-```bash
-npm install
-npm --prefix ui install
-npm run build
-npm run demo:stdio
-```
-
-Expected output:
-
-```text
-stdio demo passed
-allow: tool=search_files callCount=1
-cache: second response matched first response for tool=search_files
-block: ShadowLeak request denied with code=SHADOWLEAK_DETECTED
-block: missing auth denied with code=AUTH_FAILURE
-```
-
-## What This Proves
-
-- the first `search_files` request reaches the downstream target
-- the repeated allow request is served from cache
-- the risky `fetch_url` exfiltration sample is denied before downstream execution
-- the missing-auth sample is denied at the transport boundary
-
-See [docs/DEMO_RUN_TRANSCRIPT.md](docs/DEMO_RUN_TRANSCRIPT.md) for the example transcript.
-
-## Install In Your MCP Client
+## One Install Path
 
 Protected downstream proxy mode is the primary integration path.
 
@@ -70,21 +37,43 @@ Protected downstream proxy mode is the primary integration path.
 }
 ```
 
-Use `PROXY_AUTH_TOKEN` for fail-closed auth, and `MCP_TARGET_COMMAND` plus `MCP_TARGET_ARGS_JSON` as the default downstream target input. See [docs/CLIENT_CONFIG_EXAMPLES.md](docs/CLIENT_CONFIG_EXAMPLES.md) for client examples.
+Use `PROXY_AUTH_TOKEN` for fail-closed auth, and `MCP_TARGET_COMMAND` plus `MCP_TARGET_ARGS_JSON` as the default downstream target input. See [docs/CLIENT_CONFIG_EXAMPLES.md](docs/CLIENT_CONFIG_EXAMPLES.md) for the canonical client setup and the proof-only demo target variant.
 
-## Need Help Hardening A Local MCP Workflow?
+## One Proof Path
 
-Use the guided setup path when you want practical help instead of a generic feature request.
+The shortest repo-local proof path is:
 
-- guided setup for a Codex or Claude Code local MCP stack
-- workflow hardening audit for risky file, search, fetch, or execute paths
-- trust-gate tuning for a specific downstream MCP server
+```bash
+npm install
+npm run build
+npm run demo:stdio
+```
 
-Start here:
+Expected output:
 
-- read the operator guide: [docs/WORKFLOW_HARDENING.md](docs/WORKFLOW_HARDENING.md)
-- open a guided setup request: [guided setup request](https://github.com/shleder/mcp-transport-firewall/issues/new?template=guided-setup-request.yml)
-- use the scoped intake and early-operator offer details: [docs/GUIDED_SETUP_AND_AUDITS.md](docs/GUIDED_SETUP_AND_AUDITS.md)
+```text
+stdio demo passed
+allow: tool=search_files callCount=1
+cache: second response matched first response for tool=search_files
+block: ShadowLeak request denied with code=SHADOWLEAK_DETECTED
+block: missing auth denied with code=AUTH_FAILURE
+```
+
+See [docs/DEMO_RUN_TRANSCRIPT.md](docs/DEMO_RUN_TRANSCRIPT.md) for the tracked transcript and [docs/PROXY_SETUP.md](docs/PROXY_SETUP.md) for the exact proof flow.
+
+## Best For
+
+- individual Codex and Claude Code users who already run local MCP servers
+- local MCP-enabled coding workflows that should not run high-risk calls blindly
+- file, read, list, and search-oriented downstream MCP servers
+- teams that want a fail-closed transport control before downstream execution
+
+## What This Proves
+
+- the first `search_files` request reaches the downstream target
+- the repeated allow request is served from cache
+- the risky `fetch_url` exfiltration sample is denied before downstream execution
+- the missing-auth sample is denied at the transport boundary
 
 ## What This Is Not
 
@@ -104,6 +93,19 @@ See [docs/LIMITS_AND_NON_GOALS.md](docs/LIMITS_AND_NON_GOALS.md) for the explici
 - ShadowLeak-style exfiltration strings, sensitive paths, and shell-injection markers
 
 The primary inspected surface is JSON-RPC `tools/call` over `stdio`. Blocked requests fail closed and are not forwarded to the downstream target.
+
+## Full Verification Path
+
+If you want deeper proof than the short demo path:
+
+```bash
+npm run assert:package-metadata
+npm test
+npm run pack:dry-run
+npm run pack:smoke
+```
+
+Use [docs/VERIFICATION_GUIDE.md](docs/VERIFICATION_GUIDE.md) for the full evidence and verification map.
 
 ## Additional Modes
 
@@ -131,6 +133,13 @@ Control-plane endpoints:
 - [http://localhost:9090/health](http://localhost:9090/health)
 - [http://localhost:9090/metrics](http://localhost:9090/metrics)
 - [http://localhost:9090](http://localhost:9090)
+
+## Deeper Workflow Docs
+
+If you want a deeper operator walkthrough after the install/proof path:
+
+- workflow hardening guide: [docs/WORKFLOW_HARDENING.md](docs/WORKFLOW_HARDENING.md)
+- guided setup notes: [docs/GUIDED_SETUP_AND_AUDITS.md](docs/GUIDED_SETUP_AND_AUDITS.md)
 
 ## Trust Gates
 

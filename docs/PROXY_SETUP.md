@@ -3,11 +3,32 @@
 Use this page when you want the firewall in front of a local read/search-shaped downstream MCP server.
 The primary fit is an individual Codex or Claude Code operator protecting a risky local MCP workflow.
 
-Primary proof path:
+## Canonical install path
+
+Use protected downstream proxy mode as the default integration path:
+
+```json
+{
+  "mcpServers": {
+    "protected-local-tooling": {
+      "command": "npx",
+      "args": ["-y", "mcp-transport-firewall"],
+      "env": {
+        "PROXY_AUTH_TOKEN": "replace-with-32-byte-secret",
+        "MCP_TARGET_COMMAND": "node",
+        "MCP_TARGET_ARGS_JSON": "[\"C:/absolute/path/to/your-mcp-server.js\"]"
+      }
+    }
+  }
+}
+```
+
+Use `PROXY_AUTH_TOKEN` for fail-closed auth, and prefer `MCP_TARGET_COMMAND` plus `MCP_TARGET_ARGS_JSON` for the downstream target.
+
+## Canonical proof path
 
 ```bash
 npm install
-npm --prefix ui install
 npm run build
 npm run demo:stdio
 ```
@@ -29,9 +50,13 @@ What this proves:
 - the `fetch_url` exfiltration sample is denied before downstream execution
 - the missing-auth sample is denied at the transport boundary
 
+The proof path uses `examples/demo-target.js` as a reproducible downstream target. It demonstrates a protected local filesystem/search-style workflow without claiming to be a full filesystem MCP server.
+
 After the proof:
 
 ```bash
+npm run assert:package-metadata
+npm test
 npm run verify:all
 npm run benchmark:stdio -- --json --output evidence.json
 npm run pack:dry-run
@@ -53,32 +78,6 @@ curl http://localhost:9090/metrics
 ```
 
 The Docker path is useful for observability and packaging validation. The stdio path stays the main proof of transport-boundary enforcement.
-
-Supported CLI entry points:
-
-```bash
-npx -y mcp-transport-firewall
-npx -y mcp-transport-firewall --help
-npm install -g mcp-transport-firewall
-```
-
-Recommended client configuration:
-
-```json
-{
-  "mcpServers": {
-    "protected-local-tooling": {
-      "command": "npx",
-      "args": ["-y", "mcp-transport-firewall"],
-      "env": {
-        "PROXY_AUTH_TOKEN": "replace-with-32-byte-secret",
-        "MCP_TARGET_COMMAND": "node",
-        "MCP_TARGET_ARGS_JSON": "[\"C:/absolute/path/to/your-mcp-server.js\"]"
-      }
-    }
-  }
-}
-```
 
 If you need a self-contained MCP server without a downstream target, standalone bundled mode is still available through `npx -y mcp-transport-firewall`.
 
