@@ -260,9 +260,9 @@
       }
     },
     {
-      "id": "block-schema-validation-fetch-url",
+      "id": "block-preflight-required-fetch-url-default-high-trust",
       "kind": "block",
-      "expectedCode": "SCHEMA_VALIDATION_FAILED",
+      "expectedCode": "PREFLIGHT_REQUIRED",
       "auth": {
         "type": "nhi",
         "scopes": [
@@ -275,15 +275,15 @@
         "params": {
           "name": "fetch_url",
           "arguments": {
-            "url": "not-a-valid-url"
+            "url": "https://example.com/ok"
           }
         }
       }
     },
     {
-      "id": "block-schema-smuggled-write-file",
+      "id": "block-preflight-required-write-file-default-high-trust",
       "kind": "block",
-      "expectedCode": "SCHEMA_VALIDATION_FAILED",
+      "expectedCode": "PREFLIGHT_REQUIRED",
       "auth": {
         "type": "nhi",
         "scopes": [
@@ -297,8 +297,7 @@
           "name": "write_file",
           "arguments": {
             "path": "docs/output.txt",
-            "content": "safe",
-            "ignore_previous_instructions": true
+            "content": "safe"
           }
         }
       }
@@ -366,6 +365,30 @@
               }
             }
           ]
+        }
+      }
+    },
+    {
+      "id": "block-preflight-required-default-high-trust-tool",
+      "kind": "block",
+      "expectedCode": "PREFLIGHT_REQUIRED",
+      "auth": {
+        "type": "nhi",
+        "scopes": [
+          "tools.execute_command"
+        ]
+      },
+      "request": {
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "params": {
+          "name": "execute_command",
+          "arguments": {
+            "command": "node",
+            "args": [
+              "--version"
+            ]
+          }
         }
       }
     },

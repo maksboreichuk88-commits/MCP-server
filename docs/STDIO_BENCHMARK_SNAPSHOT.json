@@ -2,8 +2,8 @@
   "benchmark": "stdio-evidence-benchmark",
   "description": "Repeatable validation corpus for fail-closed stdio evidence and false-positive measurement.",
   "source": "examples\\evidence-corpus.json",
-  "startedAt": "2026-03-28T11:44:46.316Z",
-  "finishedAt": "2026-03-28T11:44:54.552Z",
+  "startedAt": "2026-04-02T11:10:57.252Z",
+  "finishedAt": "2026-04-02T11:11:11.457Z",
   "verdict": "passed",
   "cases": [
     {
@@ -306,28 +306,28 @@
       ]
     },
     {
-      "id": "block-schema-validation-fetch-url",
+      "id": "block-preflight-required-fetch-url-default-high-trust",
       "kind": "block",
       "repeat": 1,
-      "expectedCode": "SCHEMA_VALIDATION_FAILED",
+      "expectedCode": "PREFLIGHT_REQUIRED",
       "requests": [
         {
           "id": 18,
           "status": "blocked",
-          "errorCode": "SCHEMA_VALIDATION_FAILED"
+          "errorCode": "PREFLIGHT_REQUIRED"
         }
       ]
     },
     {
-      "id": "block-schema-smuggled-write-file",
+      "id": "block-preflight-required-write-file-default-high-trust",
       "kind": "block",
       "repeat": 1,
-      "expectedCode": "SCHEMA_VALIDATION_FAILED",
+      "expectedCode": "PREFLIGHT_REQUIRED",
       "requests": [
         {
           "id": 19,
           "status": "blocked",
-          "errorCode": "SCHEMA_VALIDATION_FAILED"
+          "errorCode": "PREFLIGHT_REQUIRED"
         }
       ]
     },
@@ -358,13 +358,26 @@
       ]
     },
     {
+      "id": "block-preflight-required-default-high-trust-tool",
+      "kind": "block",
+      "repeat": 1,
+      "expectedCode": "PREFLIGHT_REQUIRED",
+      "requests": [
+        {
+          "id": 22,
+          "status": "blocked",
+          "errorCode": "PREFLIGHT_REQUIRED"
+        }
+      ]
+    },
+    {
       "id": "block-preflight-not-found-blue-tool",
       "kind": "block",
       "repeat": 1,
       "expectedCode": "PREFLIGHT_NOT_FOUND",
       "requests": [
         {
-          "id": 22,
+          "id": 23,
           "status": "blocked",
           "errorCode": "PREFLIGHT_NOT_FOUND"
         }
@@ -372,10 +385,10 @@
     }
   ],
   "totals": {
-    "cases": 17,
-    "requests": 22,
+    "cases": 18,
+    "requests": 23,
     "allowedRequests": 10,
-    "blockedRequests": 12,
+    "blockedRequests": 13,
     "cacheHits": 5,
     "cacheConsistencyFailures": 0,
     "falsePositives": 0,
@@ -388,9 +401,8 @@
     "EPISTEMIC_CONTRADICTION_DETECTED": 1,
     "AUTH_FAILURE": 1,
     "MISSING_SCOPE": 1,
-    "SCHEMA_VALIDATION_FAILED": 2,
+    "PREFLIGHT_REQUIRED": 4,
     "CROSS_TOOL_HIJACK_ATTEMPT": 1,
-    "PREFLIGHT_REQUIRED": 1,
     "PREFLIGHT_NOT_FOUND": 1
   }
 }

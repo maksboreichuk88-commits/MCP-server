@@ -81,7 +81,7 @@ What this repo currently demonstrates:
 - fail-closed blocking on missing or invalid auth
 - fail-closed blocking on scope mismatch
 - fail-closed blocking on mixed red/blue trust domains
-- fail-closed blocking on missing or replayed preflight IDs
+- fail-closed blocking on missing, replayed, or unregistered preflight IDs for high-trust tools
 - strict argument validation for registered tool schemas
 - blocking of ShadowLeak-style exfiltration patterns
 - response sanitization before tool output is returned
