@@ -51,7 +51,7 @@ All gates fail closed. If validation cannot be completed, the request is rejecte
 | mixed trust domains / cross-tool hijack | `color-boundary` | `tests/color-boundary.test.ts` |
 | missing or replayed approval for high-trust actions | `preflight-validator` | `tests/preflight-validator.test.ts` |
 | undeclared or schema-smuggled arguments | `schema-validator` | `tests/schema-validator.test.ts` |
-| ShadowLeak-style URL exfiltration | `ast-egress-filter` | `tests/ast-egress-filter.test.ts`, `tests/cli.test.ts` |
+| ShadowLeak-style URL exfiltration, including repeated short chunks under one query key | `ast-egress-filter` | `tests/ast-egress-filter.test.ts`, `tests/cli.test.ts`, `examples/evidence-corpus.json` |
 | sensitive-path access markers | `ast-egress-filter` | `tests/ast-egress-filter.test.ts`, `examples/evidence-corpus.json` |
 | shell-injection markers in tool arguments | `ast-egress-filter` | `tests/ast-egress-filter.test.ts`, `examples/evidence-corpus.json` |
 | unsafe response material flowing back to the caller | response sanitization | `src/proxy/shadow-leak-sanitizer.ts`, `tests/app.test.ts` |

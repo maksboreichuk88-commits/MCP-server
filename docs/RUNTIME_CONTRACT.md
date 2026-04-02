@@ -65,7 +65,7 @@ Observed denial surfaces include:
 - mixed trust domains
 - missing, expired, or replayed preflight IDs
 - schema mismatch on registered tools
-- ShadowLeak, sensitive-path, shell-injection, and epistemic-risk markers
+- ShadowLeak, including repeated short-chunk URL exfiltration, plus sensitive-path, shell-injection, and epistemic-risk markers
 
 ## Downstream failure behavior
 

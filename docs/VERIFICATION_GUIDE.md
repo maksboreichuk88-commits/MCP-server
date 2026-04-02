@@ -83,7 +83,7 @@ What this repo currently demonstrates:
 - fail-closed blocking on mixed red/blue trust domains
 - fail-closed blocking on missing, replayed, or unregistered preflight IDs for high-trust tools
 - strict argument validation for registered tool schemas
-- blocking of ShadowLeak-style exfiltration patterns
+- blocking of ShadowLeak-style exfiltration patterns, including repeated short chunks under one query key
 - response sanitization before tool output is returned
 - reproducible benchmark output and control-plane metrics
 

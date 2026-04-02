@@ -32,7 +32,7 @@ The current corpus covers:
 - cacheable `read_file`
 - cacheable `open_file`
 - cacheable `list_directory`
-- ShadowLeak-style `fetch_url` exfiltration
+- ShadowLeak-style `fetch_url` exfiltration, including repeated short chunks under one query key
 - sensitive-path `read_file`
 - sensitive-path `write_file`
 - shell-injection `execute_command`

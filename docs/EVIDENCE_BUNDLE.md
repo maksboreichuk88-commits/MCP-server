@@ -12,7 +12,7 @@ Current local evidence snapshot from the latest validation pass:
 
 - `npm run demo:stdio` passed
 - `npm run benchmark:stdio` passed
-- benchmark totals: `18` cases, `23` requests, `0` false positives, `0` false negatives, `0` cache consistency failures
+- benchmark totals: `19` cases, `24` requests, `0` false positives, `0` false negatives, `0` cache consistency failures
 
 Artifact index:
 
@@ -41,6 +41,7 @@ Expected inspection outcomes:
 
 - read-style allow cases are stable across repeats
 - blocked cases fail with explicit denial codes
+- ShadowLeak evidence includes both single-character and repeated short-chunk URL exfiltration
 - mixed-trust and both default-high-trust plus `blue` preflight failures are visible in the corpus
 - the package surface still matches the documented CLI entry points
 - the packaged install contract is pinned in code and tests
