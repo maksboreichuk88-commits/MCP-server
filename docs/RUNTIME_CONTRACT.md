@@ -14,21 +14,22 @@ Recommended order:
 
 1. prove the boundary locally with `npm run demo:stdio`
 2. wire protected downstream proxy mode into your MCP client
-3. use standalone bundled mode only when you want embedded status tools without a downstream target
+3. use the embedded fallback path only when you want bundled status tools without wiring another downstream target
 
-## Runtime modes
+## Runtime paths
 
-Mode 1: standalone bundled MCP server
+Mode 1: bundled embedded target
 
-- selected when no downstream target is supplied
+- reached when the current package entrypoint runs with `--embedded-target`
 - starts the embedded MCP server from `src/embedded/server.ts`
 - exposes `firewall_status` and `firewall_usage`
+- serves as the default fallback target behind the stdio boundary when no explicit downstream target is supplied
 
 Mode 2: protected downstream proxy
 
-- selected when a target is supplied through CLI flags or environment
+- this is the default operator-facing CLI path
 - starts the stdio firewall proxy from `src/stdio/proxy.ts`
-- forwards allowed traffic to the downstream MCP server and returns sanitized results
+- forwards allowed traffic to either an explicit downstream MCP server or the bundled embedded fallback target, then returns sanitized results
 
 ## Target resolution order
 
@@ -37,7 +38,7 @@ Mode 2: protected downstream proxy
 3. `MCP_TARGET_COMMAND` plus `MCP_TARGET_ARGS_JSON`
 4. `MCP_TARGET_COMMAND` plus `MCP_TARGET_ARGS`
 5. `MCP_TARGET`
-6. bundled standalone fallback
+6. current package entrypoint with `--embedded-target`
 
 ## Inspected wire scope
 
@@ -51,9 +52,9 @@ Mode 2: protected downstream proxy
 1. shared-secret authorization and scope extraction
 2. scope validation
 3. color-boundary validation
-4. preflight validation for explicit `blue` actions and default high-trust tool families
-5. strict schema validation for registered tool contracts
-6. egress and injection marker validation
+4. egress and injection marker validation
+5. preflight validation for explicit `blue` actions and default high-trust tool families
+6. strict schema validation for registered tool contracts
 
 Blocked requests fail closed and are not forwarded to the downstream target.
 

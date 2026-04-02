@@ -10,10 +10,10 @@ Updated: 2026-04-02
 
 ## Runtime Mode Selection
 
-`src/cli.ts` selects exactly one of two modes:
+`src/cli.ts` has two runtime codepaths:
 
-1. no downstream target resolved: start the embedded MCP server from `src/embedded/server.ts`
-2. downstream target resolved: start the stdio firewall proxy from `src/stdio/proxy.ts`
+1. explicit `--embedded-target`: start the bundled embedded MCP server from `src/embedded/server.ts`
+2. default CLI path: resolve a target and start the stdio firewall proxy from `src/stdio/proxy.ts`
 
 Target resolution order is implemented in `src/cli-options.ts`:
 
@@ -22,7 +22,12 @@ Target resolution order is implemented in `src/cli-options.ts`:
 - `MCP_TARGET_COMMAND` + `MCP_TARGET_ARGS_JSON`
 - `MCP_TARGET_COMMAND` + `MCP_TARGET_ARGS`
 - `MCP_TARGET`
-- fallback to the embedded server
+- fallback to the current package entrypoint with `--embedded-target`
+
+Grounded operator detail:
+
+- a plain `npx -y mcp-transport-firewall` invocation still enters the stdio proxy path
+- if no explicit downstream target is configured, the proxy spawns the packaged embedded server as its fallback target
 
 ## Stdio Proxy Path
 
@@ -37,9 +42,9 @@ Request flow:
    - auth extraction and token/scope validation
    - scope validation
    - color-boundary validation
-   - preflight validation for blue actions
-   - strict tool-schema validation
    - AST/egress validation
+   - preflight validation for explicit `blue` and default high-trust tools
+   - strict tool-schema validation
 5. serve cache hit when allowed
 6. forward allowed JSON-RPC to the downstream target
 7. sanitize downstream result or error

@@ -4,31 +4,37 @@ Updated: 2026-04-02
 
 ## Chosen Batch
 
-Name: `package install proof`
+Name: `branch convergence and repo-surface coherence`
 
 ## Why This Is The Best ROI
 
-- this docs-only grounding commit does not replace the next implementation batch; it only records the current local truth around it
-- it extends the only active local quality packet already on the checked-out branch
-- it hardens the boundary between repo state and the actual npm artifact, which is still the most expensive place to regress before `2.2.6`
-- it improves confidence for every other queued public-facing packet because README/support/runtime wording is safer to publish when the packaged install path is harder to break
-- it adds value without creating another public draft branch immediately
+- the checked-out branch already contains the current local-only proof stack:
+  - package install proof
+  - grounded docs
+  - public proof surface
+  - policy/rules hardening
+  - benchmark/evidence alignment
+  - docs/examples alignment
+- the highest remaining risk is fragmented truth across `project/tests-first-quality`, `project/naming-and-ci-discipline`, and the existing draft PR lines
+- another isolated docs-only or packaging-only packet would add more surface area without reducing that fragmentation
+- the next meaningful release discussion should sit on one coherent branch, not on scattered local and draft packets
 
 ## Recommended Scope
 
-- continue the current P5 line from package metadata guardrails and tarball proxy smoke
-- add source-install and entrypoint proof where the packaged surface is still under-specified
-- add only the remaining high-value proxy/trust-gate proofs that exercise the real packaged boundary
-- keep the batch focused on tests, scripts, and tight doc alignment
+- decide how `project/tests-first-quality` should converge with `project/naming-and-ci-discipline`
+- carry over only the low-risk subset that improves repo truth without renaming package, repo, bin, or env vars
+- keep README, runtime docs, and proof docs centered on one local filesystem/search stdio workflow
+- keep `Toolwall` as display/planning only until a later display-copy batch
+- avoid new runtime features unless a factual fix is required
 
 ## Why The Other Top 2 Options Lose
 
-### 1. workflow proof publication
+### 1. broader display-name rollout
 
-- strong user-facing value, but the core packet already exists as draft PR `#53`
-- publishing more top-layer proof before the packaged install boundary is tighter increases story polish faster than delivery confidence
+- `Toolwall` is still a planning/display boundary, not a technical identity migration
+- broader naming rollout before branch convergence would add churn faster than clarity
 
-### 2. support surface cleanup
+### 2. monetization or audience-growth work
 
-- useful for intake hygiene, but support wording is secondary to making the shipped package harder to regress
-- the packet already exists as draft PR `#52`, so its marginal ROI is lower than finishing the active local quality line
+- repo truth and branch coherence still come first
+- pushing growth or monetization on top of mixed local, draft, and public state would amplify confusion instead of trust

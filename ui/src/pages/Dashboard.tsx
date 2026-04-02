@@ -240,10 +240,10 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50">
                   <div className="flex items-center gap-3">
                     <Key className="w-5 h-5 text-gray-400" />
-                    <span>NHI Authentication</span>
+                    <span>Shared-Secret Auth</span>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400">
-                    Active
+                  <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-400">
+                    Env-Gated
                   </span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50">
@@ -407,7 +407,7 @@ export default function Dashboard() {
         </Card>
 
         <footer className="text-center text-gray-600 text-sm pt-4 border-t border-gray-800">
-          <p>MCP Transport Firewall v2.2.2</p>
+          <p>MCP Transport Firewall Admin Dashboard</p>
           <p className="text-xs mt-1">Fail-closed stdio firewall with an HTTP compatibility harness</p>
         </footer>
       </div>

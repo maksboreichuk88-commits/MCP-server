@@ -109,15 +109,15 @@ Use [docs/VERIFICATION_GUIDE.md](docs/VERIFICATION_GUIDE.md) for the full eviden
 
 ## Additional Modes
 
-### Standalone Bundled MCP Server
+### Embedded Fallback Path
 
-If you want a self-contained MCP server with bundled diagnostic tools and no downstream target, the package still supports standalone mode:
+If you want the packaged diagnostic tools without wiring a separate downstream target, the package still supports the embedded fallback path:
 
 ```bash
 npx -y mcp-transport-firewall
 ```
 
-This exposes `firewall_status` and `firewall_usage`. It is supported, but it is not the primary onboarding story for this repository.
+The normal CLI entrypoint still starts the stdio boundary. When no downstream target is configured, it falls back to the bundled `--embedded-target` path and exposes `firewall_status` and `firewall_usage`. It is supported, but it is not the primary onboarding story for this repository.
 
 ### HTTP Compatibility Harness
 
@@ -148,9 +148,9 @@ If you want a deeper operator walkthrough after the install/proof path:
 | `nhi-auth-validator` | fail-closed shared-secret authorization envelope and scope extraction | `src/middleware/nhi-auth-validator.ts` |
 | `scope-validator` | reject tool calls outside declared scopes | `src/middleware/scope-validator.ts` |
 | `color-boundary` | block mixed trust domains and session color flips | `src/middleware/color-boundary.ts` |
+| `ast-egress-filter` | deny exfiltration, sensitive-path, shell-injection, and epistemic-risk markers | `src/middleware/ast-egress-filter.ts` |
 | `preflight-validator` | require one-time preflight IDs for explicit `blue` and default high-trust tools | `src/middleware/preflight-validator.ts` |
 | `schema-validator` | enforce strict contracts for registered tool schemas | `src/middleware/schema-validator.ts` |
-| `ast-egress-filter` | deny exfiltration, sensitive-path, shell-injection, and epistemic-risk markers | `src/middleware/ast-egress-filter.ts` |
 
 ## Package Contract
 
@@ -166,7 +166,7 @@ The recommended order is:
 
 1. prove the boundary locally with `npm run demo:stdio`
 2. integrate protected downstream proxy mode in your MCP client
-3. use standalone bundled mode only when you explicitly want embedded status tools instead of a downstream target
+3. use the embedded fallback path only when you explicitly want the bundled status tools instead of another downstream target
 
 ## Docs
 

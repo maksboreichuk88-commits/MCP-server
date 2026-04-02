@@ -4,10 +4,10 @@ Updated: 2026-04-02
 
 ## Product Shape
 
-`mcp-transport-firewall` ships one npm package with two runtime modes:
+`mcp-transport-firewall` ships one npm package with one operator-facing stdio boundary and one bundled embedded fallback target:
 
-- standalone embedded MCP server for status/help tools
 - downstream stdio firewall proxy for a real local MCP target
+- bundled embedded MCP server for status/help tools when no external target is configured
 
 The package surface is defined in `package.json` and currently exported as:
 
@@ -23,7 +23,7 @@ The primary path is the stdio proxy:
 3. `src/runtime-config.ts` resolves bounded runtime settings.
 4. `src/stdio/proxy.ts` spawns the target, inspects `tools/call`, enforces trust gates, serves cache hits where allowed, and sanitizes downstream responses.
 
-If no target is supplied, `src/embedded/server.ts` starts the bundled standalone MCP server and exposes:
+If no target is supplied, `src/cli-options.ts` falls back to the current package entrypoint with `--embedded-target`. The operator still talks to the stdio proxy, and the bundled tools come from `src/embedded/server.ts`:
 
 - `firewall_status`
 - `firewall_usage`

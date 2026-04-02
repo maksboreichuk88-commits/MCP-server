@@ -80,6 +80,6 @@ curl http://localhost:9090/metrics
 
 The Docker path is useful for observability and packaging validation. The stdio path stays the main proof of transport-boundary enforcement.
 
-If you need a self-contained MCP server without a downstream target, standalone bundled mode is still available through `npx -y mcp-transport-firewall`.
+If you need the packaged status tools without configuring another downstream target, `npx -y mcp-transport-firewall` falls back to the bundled `--embedded-target` path behind the same stdio boundary.
 
 If you want help getting from the demo path to a real protected workflow, use [Guided setup and audits](GUIDED_SETUP_AND_AUDITS.md).

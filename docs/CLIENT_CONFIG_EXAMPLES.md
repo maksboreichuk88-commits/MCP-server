@@ -73,9 +73,9 @@ High-trust note:
 
 ## Secondary paths
 
-### Standalone bundled MCP server
+### Embedded fallback path
 
-Use this when you want a self-contained MCP server with `firewall_status` and `firewall_usage`.
+Use this when you want the packaged status and launch-guidance tools without configuring another downstream target.
 
 ```json
 {
@@ -90,9 +90,9 @@ Use this when you want a self-contained MCP server with `firewall_status` and `f
 
 This path:
 
-- starts the bundled standalone MCP server
-- needs no downstream target command
-- exposes runtime status and launch guidance tools immediately
+- launches the normal CLI entrypoint
+- falls back to the bundled `--embedded-target` path when no downstream target is configured
+- exposes runtime status and launch guidance tools without another target command
 
 ### Direct terminal and CLI flow
 
