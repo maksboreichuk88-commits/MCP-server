@@ -1,1 +1,193 @@
-IyBUb29sd2FsbDogRW50ZXJwcmlzZSBTZWN1cml0eSBGaXJld2FsbCBmb3IgTUNQIEFnZW50cw0KDQpEYXRhIGxvc3MgcHJldmVudGlvbiAoRExQKSwgcmF0ZS1saW1pdGluZywgYW5kIHJlYWwtdGltZSBhdWRpdCBsb2dnaW5nIGZvciBBSSB0b29sIGV4ZWN1dGlvbi4NCg0KWyFbbnBtIHZlcnNpb25dKGh0dHBzOi8vaW1nLnNoaWVsZHMuaW8vbnBtL3YvdG9vbHdhbGwpXShodHRwczovL3d3dy5ucG1qcy5jb20vcGFja2FnZS90b29sd2FsbCkNCltIW0xpY2Vuc2U6IE1JVF0oaHR0cHM6Ly9pbWcuc2hpZWxkcy5pby9iYWRnZS9MaWNlbnNlLU1JVC1ibHVlLnN2ZyldKExJQ0VOU0UpDQoNCi0tLQ0KDQojIyBWdWxuZXJhYmlsaXR5IERlc2NyaXB0aW9uDQoNCkFJIGNvZGluZyBhZ2VudHMgKGUuZy4sIENsYXVkZSBDb2RlLCBDdXJzb3IsIFdpbmRzdXJmLCBHaXRIdWIgQ29waWxvdCkgZXhlY3V0ZSB0b29sIGNvbW1hbmRzIGxvY2FsbHksIGluY2x1ZGluZyBmaWxlIHJlYWRzLCBzaGVsbCBleGVjdXRpb24sIGFuZCBkYXRhYmFzZSBxdWVyaWVzLiBUaGUgcmVzdWx0aW5nIG91dHB1dCBpcyB0cmFuc21pdHRlZCB0byByZW1vdGUgQVBJIGVuZHBvaW50cywgY3JlYXRpbmcgYW4gdW5tb25pdG9yZWQgZGF0YSBleGZpbHRyYXRpb24gdmVjdG9yLg0KDQpFeGVjdXRpb24gcGF0aCB3aXRob3V0IFRvb2x3YWxsOg0KMS4gQWdlbnQgaW52b2tlcyBgcmVhZF9maWxlKCIuZW52IilgDQoyLiBMb2NhbCBlbnZpcm9ubWVudCB2YXJpYWJsZXMgKGBBV1NfU0VDUkVUX0FDQ0VTU19LRVk9QUtJQS4uLmApIGFyZSByZXRyaWV2ZWQuDQozLiBQbGFpbnRleHQgY3JlZGVudGlhbHMgYXJlIHRyYW5zbWl0dGVkIHRvIHRoZSBMTE0gcHJvdmlkZXIncyBBUEkuDQo0LiBQcm9kdWN0aW9uIGNyZWRlbnRpYWxzIGFyZSBpbmFkdmVydGVudGx5IHJlY29yZGVkIGluIHRoaXJkLXBhcnR5IGxvZ3MuDQo1LiBUaGUgdHJhbnNhY3Rpb24gb2NjdXJzIHdpdGhvdXQgZGV2ZWxvcGVyIG5vdGlmaWNhdGlvbi4NCg0KVGhpcyB2ZWN0b3IgY29tcHJvbWlzZXMgaW5mcmFzdHJ1Y3R1cmUgc2VjcmV0cywgcGVyc29uYWxseSBpZGVudGlmaWFibGUgaW5mb3JtYXRpb24gKFBJSSksIGFuZCBwcm9wcmlldGFyeSBhcmNoaXRlY3R1cmUgY29uZmlndXJhdGlvbnMuIFVuYXV0aG9yaXplZCB0cmFuc21pc3Npb24gb2YgdGhpcyBkYXRhIHZpb2xhdGVzIFNPQyAyLCBISVBBQSwgYW5kIFBDSSBEU1MgY29tcGxpYW5jZSByZXF1aXJlbWVudHMuDQoNClRvb2x3YWxsIG1pdGlnYXRlcyB0aGlzIHZ1bG5lcmFiaWxpdHkgYnkgb3BlcmF0aW5nIGFzIGFuIGludmlzaWJsZSBTVERJTyBwcm94eSBiZXR3ZWVuIHRoZSBBSSBhZ2VudCBhbmQgdGhlIE1vZGVsIENvbnRleHQgUHJvdG9jb2wgKE1DUCkgc2VydmVyLiBPdXRib3VuZCByZXNwb25zZXMgYXJlIHByb2Nlc3NlZCB0aHJvdWdoIGEgRExQIGVuZ2luZSBwcmlvciB0byBhZ2VudCBkZWxpdmVyeS4gU2Vuc2l0aXZlIGRhdGEgaXMgcmVkYWN0ZWQgKGBbUkVEQUNURURdYCksIHByZXZlbnRpbmcgZXh0ZXJuYWwgdHJhbnNtaXNzaW9uIHdoaWxlIG1haW50YWluaW5nIGZ1bmN0aW9uYWwgQVBJIHJlc3BvbnNlcyBmb3IgdGhlIGFnZW50Lg0KDQotLS0NCg0KIyMgQ29yZSBUZWNobmljYWwgRmVhdHVyZXMNCg0KIyMjIFNoYWRvdyBMZWFrIFNhbml0aXplciAoRExQIEVuZ2luZSkNCg0KVGhlIHN5c3RlbSBwZXJmb3JtcyByZWN1cnNpdmUgSlNPTiB0cmF2ZXJzYWwgdG8gZXhlY3V0ZSByZWFsLXRpbWUgRGF0YSBMb3NzIFByZXZlbnRpb24gb24gYWxsIG91dGJvdW5kIE1DUCByZXNwb25zZXMuIFJlZGFjdGlvbiBvcGVyYXRlcyBhdCB0d28gbGF5ZXJzOg0KDQp8IExheWVyIHwgVGFyZ2V0IFBhdHRlcm4gfCBBY3Rpb24gfA0KfC0tLS0tLS18LS0tLS0tLS0tLS0tLS0tLXwtLS0tLS0tLXwNCnwgS2V5LUxldmVsIHwgYHRva2VuYCwgYHNlY3JldGAsIGBwYXNzd29yZGAsIGBhcGlLZXlgLCBgYXV0aG9yaXphdGlvbmAsIGBjcmVkZW50aWFsYCwgYHByaXZhdGVLZXlgLCBgYWNjZXNzVG9rZW5gLCBgcmVmcmVzaFRva2VuYCwgYHNlc3Npb25JZGAgfCBWYWx1ZSByZXBsYWNlbWVudCAoYFtSRURBQ1RFRF1gKSB8DQp8IFZhbHVlLUxldmVsIHwgQmVhcmVyIFRva2VucyAoYEF1dGhvcml6YXRpb246IEJlYXJlciBsay0uLi5gKSB8IFRva2VuIHJlZGFjdGlvbiAoYFtSRURBQ1RFRF1gKSB8DQp8IFZhbHVlLUxldmVsIHwgSW5saW5lIFNlY3JldHMgKGBBV1NfU0VDUkVUX0FDQ0VTU19LRVk9QUtJQS4uLmApIHwgVmFsdWUgcmVkYWN0aW9uIChgW1JFREFDVEVEXWApIHwNCnwgVmFsdWUtTGV2ZWwgfCBJUCBBZGRyZXNzZXMgKGAxOTIuMTY4LjEuMTAwYCwgYDEwLjAuMC4xYCkgfCBNYXNraW5nIChgW1JFREFDVEVEX0lQXWApIHwNCnwgVmFsdWUtTGV2ZWwgfCBFbWFpbC9QSUkgKGB1c2VyQGRvbWFpbi5jb21gKSB8IE1hc2tpbmcgKGBbUkVEQUNURURfRU1BSUxdYCkgfA0KfCBWYWx1ZS1MZXZlbCB8IEluZnJhc3RydWN0dXJlIFBhdGhzIChgL2hvbWUvdXNlci8uc3NoL2lkX3JzYWAsIGAuZW52YCwgYC5hd3MvYCkgfCBNYXNraW5nIChgW1JFREFDVEVEX1BBVEhdYCkgfA0KfCBWYWx1ZS1MZXZlbCB8IFN0YWNrIFRyYWNlcyAoYGF0IE1vZHVsZS5fY29tcGlsZSAobm9kZTppbnRlcm5hbC8uLi4pYCkgfCBSZWRhY3Rpb24gKGBbUkVEQUNURURdYCkgfA0KDQpBcHBsaWNhdGlvbi1sZXZlbCBwYXRocyAoZS5nLiwgYC9hcGkvdjEvdXNlcnNgKSBieXBhc3MgcmVkYWN0aW9uLg0KDQotLS0NCg0KIyMjIEZhaWwtQ2xvc2VkIFByb3h5IEFyY2hpdGVjdHVyZQ0KDQpBbGwgZXJyb3Igc3RhdGVzIHJlc29sdmUgdG8gYSBkZW5pZWQgcmVzcG9uc2UuIFBhc3N0aHJvdWdoIGFuZCBzaWxlbnQgZHJvcHBpbmcgYXJlIGV4cGxpY2l0bHkgcHJvaGliaXRlZC4NCg0KfCBGYWlsdXJlIENvbmRpdGlvbiB8IFN5c3RlbSBCZWhhdmlvciB8DQp8LS0tLS0tLS0tLS0tLS0tLS0tfC0tLS0tLS0tLS18DQp8IFRhcmdldCBNQ1Agc2VydmVyIHRlcm1pbmF0aW9uIHwgUGVuZGluZyByZXF1ZXN0cyByZXR1cm4gYFRBUkdFVF9VTkFWQUlMQUJMRWAgZXJyb3IgfA0KfCBJbnZhbGlkIEpTT04gZW1pc3Npb24gYnkgdGFyZ2V0IHwgVGFyZ2V0IHByb2Nlc3MgdGVybWluYXRlczsgcmVxdWVzdHMgZmFpbCBzYWZlbHkgfA0KfCBSZXNwb25zZSB0aW1lb3V0IChkZWZhdWx0IDMwcykgfCBgRmFpbC1DbG9zZWRgIGVycm9yIHJldHVybmVkIHwNCnwgQ2xpZW50IGRpc2Nvbm5lY3Rpb24gfCBUYXJnZXQgc3RkaW4gY2xvc2VzOyBwcm94eSBzaHV0cyBkb3duIGNsZWFubHkgfA0KfCBJbnB1dCBKU09OIHBhcnNlIGZhaWx1cmUgfCBgUGFyc2UgZXJyb3JgIChjb2RlIGAtMzI3MDBgKSByZXR1cm5lZCB8DQoNCkFsbCBkZW5pYWxzIGNvbmZvcm0gdG8gdGhlIEpTT04tUlBDIDIuMCBzcGVjaWZpY2F0aW9uLg0KDQotLS0NCg0KIyMjIFJlc291cmNlIEd1YXJkIChPT00gUHJvdGVjdGlvbikNCg0KTWl0aWdhdGVzIG1lbW9yeSBleGhhdXN0aW9uIHZ1bG5lcmFiaWxpdGllcyBieSBlbmZvcmNpbmcgYSBzdHJpY3QgNSBNQiBsaW1pdCBwZXIgcmVzcG9uc2UgcGF5bG9hZC4NCg0KVW5saWtlIHRydW5jYXRpb24gbWV0aG9kcyB0aGF0IHlpZWxkIGludmFsaWQgSlNPTiBhbmQgY2F1c2UgY2xpZW50IGhhbmdpbmcsIFRvb2x3YWxsIGRpc2NhcmRzIG92ZXJzaXplZCBidWZmZXJzIGFuZCByZXR1cm5zIGEgY29tcGxpYW50IGVycm9yOg0KDQpgYGBqc29uDQp7DQogICJqc29ucnBjIjogIjIuMCIsDQogICJpZCI6IDQyLA0KICAiZXJyb3IiOiB7DQogICAgImNvZGUiOiAtMzIwMDAsDQogICAgIm1lc3NhZ2UiOiAiUmVzcG9uc2UgVG9vIExhcmdlIg0KICB9DQp9DQpgYGANCg0KVGhlIGNsaWVudCByZWNlaXZlcyBhIHBhcnNlYWJsZSBlcnJvciBzdHJ1Y3R1cmUsIHByZXZlbnRpbmcgYXBwbGljYXRpb24gaW5zdGFiaWxpdHkuDQoNCi0tLQ0KDQojIyMgQXVkaXQgTG9nZ2luZw0KDQpBbGwgdG9vbCBpbnZvY2F0aW9ucywgRExQIHJlZGFjdGlvbiBldmVudHMsIGFuZCBibG9ja2VkIHJlcXVlc3RzIGFyZSByZWNvcmRlZCB0byBgYXVkaXQubG9nYCBpbiBzdHJ1Y3R1cmVkIEpTT04gZm9ybWF0Og0KDQpgYGBqc29uDQp7InRpbWVzdGFtcCI6IjIwMjYtMDUtMTJUMTc6NDI6MDAuMDAwWiIsImV2ZW50IjoiUkVTUE9OU0VfU0FOSVRJWkVEIiwidHlwZSI6Im9iamVjdCIsImNvbmZpZyI6ey4uLn19DQp7InRpbWVzdGFtcCI6IjIwMjYtMDUtMTJUMTc6NDI6MDEuMDAwWiIsImV2ZW50IjoiT09NX1BST1RFQ1RJT05fVFJJR0dFUkVEIiwiaWQiOjQyLCJieXRlTGVuZ3RoIjo2MjkxNDU2LCJsaW1pdCI6NTI0Mjg4MH0NCmBgYA0KDQpUaGUgbG9nIGZvcm1hdCBpcyBjb21wYXRpYmxlIHdpdGggc3RhbmRhcmQgU0lFTSBzb2x1dGlvbnMgaW5jbHVkaW5nIEF6dXJlIE1vbml0b3IsIFNwbHVuaywgYW5kIERhdGFkb2cuIEEgUHJvbWV0aGV1cyBtZXRyaWNzIGVuZHBvaW50IChgL21ldHJpY3NgKSBpcyBleHBvc2VkIGZvciByZWFsLXRpbWUgdGVsZW1ldHJ5Lg0KDQpFeHBvcnRlZCBtZXRyaWNzIGluY2x1ZGU6IGBtYXBfZmlyZXdhbGxfYmxvY2tlZF9yZXF1ZXN0c190b3RhbGAsIGBtYXBfZmlyZXdhbGxfY2FjaGVfaGl0c190b3RhbGAsIGBtYXBfZmlyZXdhbGxfc3RkaW9fcmVxdWVzdHNfdG90YWxgLg0KDQotLS0NCg0KIyMgU3lzdGVtIEFyY2hpdGVjdHVyZQ0KDQpgYGB0ZXh0DQpbQUkgQWdlbnRdIDwtLS0oU1RESU8pLS0tPiBbVG9vbHdhbGwgUHJveHldIDwtLS0oU1RESU8pLS0tPiBbTUNQIFNlcnZlcl0NCmBgYA0KDQoqKlJlcXVlc3QgTGlmZWN5Y2xlOioqDQoNCjEuIEFnZW50IHRyYW5zbWl0cyBhIEpTT04tUlBDIHJlcXVlc3QgdG8gdGhlIFRvb2x3YWxsIGBzdGRpbmAuDQoyLiBUb29sd2FsbCB2YWxpZGF0ZXMgSlNPTiBzdHJ1Y3R1cmUgYW5kIEpTT04tUlBDIDIuMCBjb21wbGlhbmNlLg0KMy4gQ2FjaGUgbG9va3VwIGV4ZWN1dGVzIChMMSBpbi1tZW1vcnkgTFJVLCB0cmFuc2l0aW9uaW5nIHRvIEwyIFNRTGl0ZSBvbi1kaXNrKS4NCjQuIENhY2hlIGhpdDogSW1tZWRpYXRlIHJlc3BvbnNlIHJldHVybmVkOyB0YXJnZXQgc2VydmVyIGlzIGJ5cGFzc2VkLg0KNS4gQ2FjaGUgbWlzczogUmVxdWVzdCBpcyBmb3J3YXJkZWQgdG8gdGhlIHRhcmdldCBzZXJ2ZXIgYHN0ZGluYC4NCjYuIFRhcmdldCByZXNwb25zZSB1bmRlcmdvZXMgT09NIHZhbGlkYXRpb24gKDUgTUIgdGhyZXNob2xkKS4NCjcuIFNoYWRvdyBMZWFrIFNhbml0aXplciByZWRhY3RzIGRlZmluZWQgc2VjcmV0cyBhbmQgUElJLg0KOC4gU2FuaXRpemVkIHJlc3BvbnNlIGlzIGNhY2hlZCBhbmQgb3V0cHV0IHRvIHRoZSBhZ2VudCBgc3Rkb3V0YC4NCg0KWmVybyBjb25maWd1cmF0aW9uIGlzIHJlcXVpcmVkIG9uIHRoZSBhZ2VudCBvciBzZXJ2ZXIgaW50ZXJmYWNlcy4NCg0KLS0tDQoNCiMjIERlcGxveW1lbnQgQ29uZmlndXJhdGlvbg0KDQojIyMgWmVyby1EZXBlbmRlbmN5IEJpbmFyeQ0KDQpUb29sd2FsbCBpcyBkaXN0cmlidXRlZCBhcyBhIHN0YXRpY2FsbHkgbGlua2VkIGV4ZWN1dGFibGUgdmlhIGBidW4gYnVpbGQgLS1jb21waWxlYC4gVGhlIGJpbmFyeSBlbmNhcHN1bGF0ZXMgdGhlIHJ1bnRpbWUgZW52aXJvbm1lbnQsIGRlcGVuZGVuY2llcywgYW5kIGFwcGxpY2F0aW9uIGxvZ2ljLiBJdCBvcGVyYXRlcyBpbmRlcGVuZGVudGx5IG9mIGBub2RlX21vZHVsZXNgLCBgcGFja2FnZS5qc29uYCwgYW5kIHRoZSBgbnBtYCByZWdpc3RyeSwgZmFjaWxpdGF0aW5nIGRlcGxveW1lbnQgaW4gYWlyLWdhcHBlZCBlbnZpcm9ubWVudHMuDQoNCioqQnVpbGQgZXhlY3V0aW9uOioqDQoNCmBgYGJhc2gNCmJ1biBpbnN0YWxsDQpidW4gcnVuIGJ1aWxkOmJpbg0KYGBgDQoNCioqQmluYXJ5IGV4ZWN1dGlvbjoqKg0KDQpgYGBiYXNoDQouL3Rvb2x3YWxsIC0tdGFyZ2V0ICJucHggQG1vZGVsY29udGV4dHByb3RvY29sL3NlcnZlci1ldmVyeXRoaW5nIg0KYGBgDQoNCiMjIyBDbGllbnQgQ29uZmlndXJhdGlvbiAoQ2xhdWRlIENvZGUgLyBDdXJzb3IpDQoNCmBgYmpzb24NCnsNCiAgIm1jcFNlcnZlcnMiOiB7DQogICAgInByb3RlY3RlZC1zZXJ2ZXIiOiB7DQogICAgICAiY29tbWFuZCI6ICIuL3Rvb2x3YWxsIiwNCogICAgICAiYXJncyI6IFsiLS10YXJnZXQiLCAibnB4IEBtb2RlbGNvbnRleHRwcm90b2NvbC9zZXJ2ZXItZXZlcnl0aGluZyJdDQogICAgfQ0KICB9DQp9DQpgYGANCg0KIyMjIFRlbGVtZXRyeSBhbmQgQWRtaW5pc3RyYXRpb24gQ29uZmlndXJhdGlvbg0KDQpgYGBiYXNoDQpNQ1BfQURNSU5fRU5BQkxFRD10cnVlIEFETUlOX1RPS0VOPTwzMl9ieXRlX21pbmltdW1fdG9rZW4+IC4vdG9vbHdhbGwgLS10YXJnZXQgIm5vZGUgbXktbWNwLXNlcnZlci5qcyINCmBgYA0KDQotLS0NCg0KIyMgRW50ZXJwcmlzZSBHb3Zlcm5hbmNlDQoNCiMjIyBFbnZpcm9ubWVudCBWYXJpYWJsZXMNCg0KfCBWYXJpYWJsZSB8IERlZmF1bHQgfCBEZXNjcmlwdGlvbiB8DQp8LS0tLS0tLS0tLXwtLS0tLS0tLXwtLS0tLS0tLS0tLS0tfA0KfCBgTUNQX1RBUkdFVF9DT01NQU5EYCB8IOKAlCB8IFRhcmdldCBNQ1Agc2VydmVyIGV4ZWN1dGFibGUgfA0KfCBgTUNQX1RBUkdFVF9USU1FT1VUX01TYCB8IGAzMDAwMGAgfCBUYXJnZXQgcmVzcG9uc2UgdGltZW91dCBwcmlvciB0byBmYWlsLWNsb3NlZCBzdGF0ZSB8DQp8IGBNQ1BfQURNSU5fRU5BQkxFRGAgfCBgZmFsc2VgIHwgRW5hYmxlIEFkbWluaXN0cmF0aW9uIEFQSSBhbmQgUHJvbWV0aGV1cyB0ZWxlbWV0cnkgfA0KfCBgTUNQX0FETUlOX1BPUlRgIHwgYDkwOTBgIHwgQWRtaW5pc3RyYXRpb24gQVBJIHBvcnQgYXNzaWdubWVudCB8DQp8IGBBRE1JTl9UT0tFTmAgfCDigJQgfCBCZWFyZXIgdG9rZW4gZm9yIGFkbWluaXN0cmF0aXZlIG9wZXJhdGlvbnMgKG1pbmltdW0gMzIgYnl0ZXMpIHwNCnwgYFBST1hZX0FVVEhfVE9LRU5gIHwg4oCUIHwgTkhJIGF1dGhvcml6YXRpb24gdG9rZW4gZm9yIGZhaWwtY2xvc2VkIGF1dGhlbnRpY2F0aW9uIHwNCnwgYE1DUF9DQUNIRV9UVExfU0VDT05EU2AgfCBgMzAwYCB8IENhY2hlIGVudHJ5IFRpbWUtVG8tTGl2ZSB8DQoNCiMjIyBDb21wbGlhbmNlIE1hcHBpbmcNCg0KLSAqKlNPQyAyIFR5cGUgSUkqKjogTWFpbnRhaW5zIGFuIGltbXV0YWJsZSBhdWRpdCB0cmFpbCBmb3IgdG9vbCBpbnZvY2F0aW9ucyBhbmQgRExQIGV2ZW50cy4NCi0gKipISVBBQSoqOiBEZXRlY3RzIGFuZCByZWRhY3RzIGVsZWN0cm9uaWMgUHJvdGVjdGVkIEhlYWx0aCBJbmZvcm1hdGlvbiAoZVBISSkgcHJpb3IgdG8gZWdyZXNzLg0KLSAqKlBDSSBEU1MqKjogTWFza3MgY3J5cHRvZ3JhcGhpYyBtYXRlcmlhbCBhbmQgYWNjZXNzIGNyZWRlbnRpYWxzLg0KLSAqKlplcm8gVHJ1c3QqKjogSW1wbGVtZW50cyBhIGZhaWwtY2xvc2VkIGFyY2hpdGVjdHVyZSByZXF1aXJpbmcgZXhwbGljaXQgdmFsaWRhdGlvbiBmb3IgYWxsIHRyYW5zYWN0aW9ucy4NCg0KIyMjIEJpbmFyeSBEaXN0cmlidXRpb24gUHJvcGVydGllcw0KDQotIEVsaW1pbmF0ZXMgZGVwZW5kZW5jeSByZXNvbHV0aW9uIHJlcXVpcmVtZW50cyBvbiBpc29sYXRlZCBuZXR3b3Jrcy4NCi0gUmVtb3ZlcyBgbm9kZV9tb2R1bGVzYCBzdXBwbHktY2hhaW4gYXR0YWNrIHZlY3RvcnMuDQotIFByb3ZpZGVzIGEgZGV0ZXJtaW5pc3RpYyBiaW5hcnkgaGFzaCBmb3IgY29uZmlndXJhdGlvbiBtYW5hZ2VtZW50Lg0KLSBTdGFuZGFyZGl6ZXMgZGVwbG95bWVudCBmb3IgU0NDTSwgTWljcm9zb2Z0IEludHVuZSwgYW5kIGVuZHBvaW50IG1hbmFnZW1lbnQgc3lzdGVtcy4NCi0gTmF0aXZlbHkgc3VwcG9ydHMgTGludXgsIG1hY09TLCBhbmQgV2luZG93cyBlbnZpcm9ubWVudHMuDQoNCi0tLQ0KDQojIyBMaWNlbnNlDQoNCk1JVA==
+# Toolwall: Enterprise Security Firewall for MCP Agents
+
+Data loss prevention (DLP), rate-limiting, and real-time audit logging for AI tool execution.
+
+[![npm version](https://img.shields.io/npm/v/toolwall)](https://www.npmjs.com/package/toolwall)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+---
+
+## Vulnerability Description
+
+AI coding agents (e.g., Claude Code, Cursor, Windsurf, GitHub Copilot) execute tool commands locally, including file reads, shell execution, and database queries. The resulting output is transmitted to remote API endpoints, creating an unmonitored data exfiltration vector.
+
+Execution path without Toolwall:
+1. Agent invokes `read_file(".env")`
+2. Local environment variables (`AWS_SECRET_ACCESS_KEY=AKIA...`) are retrieved.
+3. Plaintext credentials are transmitted to the LLM provider’s API.
+4. Production credentials are inadvertently recorded in third-party logs.
+5. The transaction occurs without developer notification.
+
+This vector compromises infrastructure secrets, personally identifiable information (PII), and proprietary architecture configurations. Unauthorized transmission of this data violates SOC 2, HIPAA, and PCI DSS compliance requirements.
+
+Toolwall mitigates this vulnerability by operating as an invisible STDIO proxy between the AI agent and the Model Context Protocol (MCP) server. Outbound responses are processed through a DLP engine prior to agent delivery. Sensitive data is redacted (`[REDACTED]`), preventing external transmission while maintaining functional API responses for the agent.
+
+---
+
+## Core Technical Features
+
+### Shadow Leak Sanitizer (DLP Engine)
+
+The system performs recursive JSON traversal to execute real-time Data Loss Prevention on all outbound MCP responses. Redaction operates at two layers:
+
+| Layer | Target Pattern | Action |
+|-------|----------------|--------|
+| Key-Level | `token`, `secret`, `password`, `apiKey`, `authorization`, `credential`, `privateKey`, `accessToken`, `refreshToken`, `sessionId` | Value replaced with `[REDACTED]` |
+| Value-Level | Bearer Tokens (`Authorization: Bearer sk-...`) | Token redaction |
+| Value-Level | Inline Secrets (`AWS_SECRET_ACCESS_KEY=AKIA...`) | Value redaction |
+| Value-Level | IP Addresses (`192.168.1.100`) | Masked as `[REDACTED_IP]` |
+| Value-Level | Email/PII (`user@domain.com`) | Masked as `[REDACTED_EMAIL]` |
+| Value-Level | Infrastructure Paths (`.env`, `.ssh/`, `.aws/`) | Masked as `[REDACTED_PATH]` |
+| Value-Level | Stack Traces | Redacted |
+
+Application-level paths (e.g., `/api/v1/users`) bypass redaction.
+
+---
+
+### Fail-Closed Proxy Architecture
+
+All error states resolve to a denied response. Passthrough and silent dropping are explicitly prohibited.
+
+| Failure Condition | System Behavior |
+|-------------------|-----------------|
+| Target MCP server termination | Pending requests return `TARGET_UNAVAILABLE` error |
+| Invalid JSON emission by target | Target process terminates; requests fail safely |
+| Response timeout (default 30s) | `Fail-Closed` error returned |
+| Client disconnection | Target stdin closes; proxy shuts down cleanly |
+| Input JSON parse failure | `Parse error` (code `-32700`) returned |
+
+All denials conform to the JSON-RPC 2.0 specification.
+
+---
+
+### Resource Guard (OOM Protection)
+
+Mitigates memory exhaustion vulnerabilities by enforcing a strict 5 MB limit per response payload.
+
+Unlike truncation methods that yield invalid JSON and cause client hanging, Toolwall discards oversized buffers and returns a compliant error:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 42,
+  "error": {
+    "code": -32000,
+    "message": "Response Too Large"
+  }
+}
+```
+
+The client receives a parseable error structure, preventing application instability.
+
+---
+
+### Audit Logging
+
+All tool invocations, DLP redaction events, and blocked requests are recorded to `audit.log` in structured JSON format:
+
+```json
+{"timestamp":"2026-05-12T17:42:00.000Z","event":"RESPONSE_SANITIZED","type":"object","config":{}}
+{"timestamp":"2026-05-12T17:42:01.000Z","event":"OOM_PROTECTION_TRIGGERED","id":42,"byteLength":6291456,"limit":5242880}
+```
+
+Compatible with Azure Monitor, Splunk, Datadog, and any SIEM that ingests structured JSON. A Prometheus metrics endpoint (`/metrics`) is exposed for telemetry.
+
+Exported metrics: `mcp_firewall_blocked_requests_total`, `mcp_firewall_cache_hits_total`, `mcp_firewall_stdio_requests_total`.
+
+---
+
+## System Architecture
+
+```text
+[AI Agent] <---(STDIO)---> [Toolwall Proxy] <---(STDIO)---> [MCP Server]
+```
+
+Request Lifecycle:
+
+1. Agent transmits a JSON-RPC request to the Toolwall `stdin`.
+2. Toolwall validates JSON structure and JSON-RPC 2.0 compliance.
+3. Cache lookup executes (L1 in-memory LRU, then L2 SQLite on-disk).
+4. Cache hit: immediate response returned; target server is bypassed.
+5. Cache miss: request is forwarded to the target server `stdin`.
+6. Target response undergoes OOM validation (5 MB threshold).
+7. Shadow Leak Sanitizer redacts secrets and PII.
+8. Sanitized response is cached and output to the agent `stdout`.
+
+Zero configuration is required on the agent or server interfaces.
+
+---
+
+## Deployment Configuration
+
+### Zero-Dependency Binary
+
+Toolwall is distributed as a statically linked executable via `bun build --compile`. The binary encapsulates the runtime environment, dependencies, and application logic. It operates independently of `node_modules`, `package.json`, and the `npm` registry, facilitating deployment in air-gapped environments.
+
+Build:
+
+```bash
+bun install
+bun run build:bin
+```
+
+Run:
+
+```bash
+./toolwall --target "npx @modelcontextprotocol/server-everything"
+```
+
+### Client Configuration (Claude Code / Cursor)
+
+```json
+{
+  "mcpServers": {
+    "protected-server": {
+      "command": "./toolwall",
+      "args": ["--target", "npx @modelcontextprotocol/server-everything"]
+    }
+  }
+}
+```
+
+### Telemetry and Administration
+
+```bash
+MCP_ADMIN_ENABLED=true ADMIN_TOKEN=<32_byte_minimum_token> ./toolwall --target "node my-mcp-server.js"
+```
+
+---
+
+## Enterprise Governance
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MCP_TARGET_COMMAND` | -- | Target MCP server executable |
+| `MCP_TARGET_TIMEOUT_MS` | `30000` | Target response timeout prior to fail-closed state |
+| `MCP_ADMIN_ENABLED` | `false` | Enable Administration API and Prometheus telemetry |
+| `MCP_ADMIN_PORT` | `9090` | Administration API port assignment |
+| `ADMIN_TOKEN` | -- | Bearer token for administrative operations (minimum 32 bytes) |
+| `PROXY_AUTH_TOKEN` | -- | NHI authorization token for fail-closed authentication |
+| `MCP_CACHE_TTL_SECONDS` | `300` | Cache entry Time-To-Live |
+
+### Compliance Mapping
+
+- **SOC 2 Type II**: Maintains an immutable audit trail for tool invocations and DLP events.
+- **HIPAA**: Detects and redacts electronic Protected Health Information (ePHI) prior to egress.
+- **PCI DSS**: Masks cryptographic material and access credentials.
+- **Zero Trust**: Implements a fail-closed architecture requiring explicit validation for all transactions.
+
+### Binary Distribution Properties
+
+- Eliminates dependency resolution requirements on isolated networks.
+- Removes `node_modules` supply-chain attack vectors.
+- Provides a deterministic binary hash for configuration management.
+- Standardizes deployment for SCCM, Microsoft Intune, and endpoint management systems.
+- Supports Linux, macOS, and Windows environments.
+
+---
+
+## License
+
+MIT
