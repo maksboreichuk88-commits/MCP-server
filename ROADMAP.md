@@ -1,6 +1,6 @@
 # Roadmap
 
-This project is already usable as a fail-closed MCP transport firewall. The next steps are about keeping the stdio path solid, making release flow boring, and turning early operator use into real trust, feedback, and repeatable setup paths without bloating the core.
+This project is already usable as a fail-closed Toolwall. The next steps are about keeping the stdio path solid, making release flow boring, and turning early operator use into real trust, feedback, and repeatable setup paths without bloating the core.
 
 Near term:
 

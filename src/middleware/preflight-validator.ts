@@ -14,6 +14,7 @@ const DEFAULT_HIGH_TRUST_TOOLS = new Set([
   'fetch_url',
 ]);
 
+// Intentionally process-local: approvals and replay tombstones do not survive restart.
 const preflightRegistry = new Map<string, number>();
 const consumedRegistry = new Map<string, number>();
 const CONSUMED_TTL_MS = 5 * 60 * 1000;

@@ -1,11 +1,11 @@
 # Current State Grounded
 
-Updated: 2026-04-02
+Updated: 2026-04-06
 
 ## public/current
 
-- npm `latest` is `2.2.5`
-- `npm view mcp-transport-firewall version dist-tags --json` still returns version `2.2.5` and `latest: 2.2.5`
+- the only confirmed published npm line is still the pre-rename `2.2.5` release track
+- the renamed `toolwall` package identity is local-only in this batch until a future publish proves it
 - latest GitHub release is `v2.2.5`, published at `2026-03-31T19:48:11Z`
 - `origin/main` is commit `597c7e3` (`ci(actions): Update workflows for Node 24 (#48)`)
 
@@ -29,9 +29,10 @@ These PRs are public on GitHub, but they are not merged and they do not change t
 ## local-only
 
 - checked-out branch: `project/tests-first-quality`
-- the current checked-out tip is local-only and unpublished; at this review boundary it is `06e0245 docs(pr): Final review-readiness fix`
+- the current checked-out tip at this review boundary is `2ed9ec5 docs(pr): Sync review boundary truth`
+- `origin/project/tests-first-quality` also points to `2ed9ec5`
 - re-read `git status --short --branch` for the exact ahead count on the current tip
-- the intended local release-candidate boundary should keep a clean working tree
+- re-read `git status --short --branch` before treating this file as an exact clean-boundary snapshot; local-only working-tree truth can move ahead of the last committed review boundary
 - current local-only stack already includes:
   - package install proof
   - grounded docs
@@ -60,6 +61,7 @@ These PRs are public on GitHub, but they are not merged and they do not change t
   - `dbb35d5 docs(release): Converge local stack for future release boundary`
   - `fa26c69 docs(readme): Clean first-read surface and remove logo`
   - `06e0245 docs(pr): Final review-readiness fix`
+  - `2ed9ec5 docs(pr): Sync review boundary truth`
 - separate unpublished local branch: `project/naming-and-ci-discipline` at `ebbdd73`
 
 ## convergence status
@@ -70,9 +72,11 @@ These PRs are public on GitHub, but they are not merged and they do not change t
 - package install proof, packaged proxy smoke coverage, and repo-local demo proof all exist on the same branch
 - policy hardening, evidence alignment, docs/examples alignment, and runtime truth-sync already landed together in local-only form
 - the secondary HTTP/admin route registry is now restart-durable without broadening the flagship stdio story
+- the current working-tree contract keeps preflight registrations, consumed preflight replay state, color sessions, and tenant rate-limit config intentionally process-local
 - strict schema coverage expanded only for common safe filesystem sibling tools
 - ShadowLeak detection now blocks repeated short query chunks under one key without widening the safe search/read path
-- the README and first-read repo surface now present `Toolwall` as the display name while keeping `mcp-transport-firewall` as the technical package/install identity
+- current response-side sanitization also redacts explicit plain-text bearer headers and inline secret assignments before downstream strings re-enter the caller context
+- the README and first-read repo surface now use one unified local identity: `Toolwall` / `toolwall`
 
 ### still fragmented or intentionally separate
 
@@ -89,13 +93,18 @@ These PRs are public on GitHub, but they are not merged and they do not change t
 
 ## required verification boundary for this local stack
 
+On 2026-04-06, Toolwall program Day 3 re-confirmed the current local boundary with a fresh serial rerun.
+
 - `git status --short --branch`
 - `git branch --show-current`
 - `git log --oneline --decorate -n 30`
+- `npm run assert:package-metadata`
+- `npm run typecheck`
 - `npm test`
+- `npm run pack:dry-run`
 - `npm run demo:stdio`
 - `npm run pack:smoke`
-- `npm run benchmark:stdio -- --json --output evidence.json`
+- rerun `npm run benchmark:stdio -- --json --output evidence.json` only when evidence-facing deny behavior or benchmark snapshot content changes
 
 These checks confirm local branch behavior only. They do not prove push, PR merge, release, or npm publication.
 
@@ -141,17 +150,25 @@ Important reconciliation rule:
 - when no explicit target is configured, `src/cli-options.ts` falls back to the current package entrypoint with `--embedded-target`
 - the bundled embedded server in `src/embedded/server.ts` exposes `firewall_status` and `firewall_usage`
 - trust gates in `src/stdio/proxy.ts` run in this order:
-  1. auth extraction and scope validation
-  2. color-boundary validation
-  3. AST/egress validation
-  4. preflight validation
-  5. strict schema validation
+  1. auth parsing and validation
+  2. scope validation
+  3. color-boundary validation
+  4. AST/egress validation
+  5. preflight validation
+  6. strict schema validation
+- stdio auth and scope remain conditional on configured `PROXY_AUTH_TOKEN` / `proxyAuthToken`; they are not universal always-on gates
+- default high-trust preflight currently applies to `write_file`, `write`, `create_file`, `execute_command`, `execute`, and `fetch_url` even without explicit `blue`
+- the strict schema registry now also covers `read_multiple_files` / `read_files`, `directory_tree`, `get_file_info`, and `list_allowed_directories`, while unknown tools still remain explicit passthrough
+- downstream `result`, `error`, and non-JSON-RPC target output are sanitized before they re-enter the caller context
+- current response-side redaction covers sensitive keyed fields, stack traces, sensitive paths, IP addresses, emails, plus narrow plain-text bearer-header and inline secret-assignment patterns
 
 ### reconciled in this packet
 
 - repo docs should describe the packaged embedded server as the fallback downstream target for the default CLI path, not as the default direct CLI path
 - the checked-out branch now also includes truth-synced repo surfaces, restart-durable secondary route registration, expanded safe schema coverage, and repeated short-chunk ShadowLeak blocking
+- indirect prompt-injection and egress blocking remain heuristic / pattern-based; they should not be described as full semantic prevention
 - the local verification surface still includes `scripts/assert-package-metadata.mjs`, expanded install-contract assertions in `tests/release-guardrails.test.ts`, and packaged downstream proof in `tests/package-proxy-smoke.test.ts`
+- `scripts/pack-smoke.mjs` is now treated as a kept stable verification harness; it is verification-layer code rather than runtime logic, and it uses an isolated temp tarball path per run instead of reusing a repo-root tarball filename
 - GitHub-visible docs can still lag this grounded local packet until it is pushed
 
 ### cannot confirm

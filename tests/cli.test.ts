@@ -368,7 +368,7 @@ describe('stdio firewall proxy', () => {
       input: clientInput,
       output: clientOutput,
       errorOutput: clientError,
-      targetCommand: 'mcp-transport-firewall-missing-command',
+      targetCommand: 'toolwall-missing-command',
       targetArgs: [],
       cacheDir,
       cacheTtlSeconds: 60,

@@ -7,12 +7,12 @@ import { resolveProxyRuntimeConfig } from './runtime-config.js';
 import { createStdioFirewallProxy } from './stdio/proxy.js';
 
 const printHelp = (): void => {
-  process.stdout.write(`MCP Transport Firewall
+  process.stdout.write(`Toolwall
 
 Usage:
-  mcp-transport-firewall
-  mcp-transport-firewall -- node target.js
-  mcp-transport-firewall --target "node target.js"
+  toolwall
+  toolwall -- node target.js
+  toolwall --target "node target.js"
 
 Modes:
   no target supplied      start the bundled standalone MCP server

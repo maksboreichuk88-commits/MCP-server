@@ -63,43 +63,49 @@ describe('schema-validator (Progressive Disclosure)', () => {
     },
   );
 
-  it('allows a strict read_multiple_files payload for common local filesystem workflows', () => {
-    const req = createMockReq({
-      method: 'tools/call',
-      params: {
-        name: 'read_multiple_files',
-        arguments: {
-          paths: ['/workspace/README.md', '/workspace/docs/guide.md'],
+  it.each(['read_multiple_files', 'read_files'])(
+    'allows a strict multi-read payload for alias %s',
+    (toolName) => {
+      const req = createMockReq({
+        method: 'tools/call',
+        params: {
+          name: toolName,
+          arguments: {
+            paths: ['/workspace/README.md', '/workspace/docs/guide.md'],
+          },
         },
-      },
-    });
-    const { res } = createMockRes();
-    const next = jest.fn();
+      });
+      const { res } = createMockRes();
+      const next = jest.fn();
 
-    validator(req as Request, res as Response, next as NextFunction);
+      validator(req as Request, res as Response, next as NextFunction);
 
-    expect(next).toHaveBeenCalledTimes(1);
-    expect(res.status).not.toHaveBeenCalled();
-  });
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(res.status).not.toHaveBeenCalled();
+    },
+  );
 
-  it('blocks read_multiple_files when the paths list is empty', () => {
-    const req = createMockReq({
-      method: 'tools/call',
-      params: {
-        name: 'read_multiple_files',
-        arguments: {
-          paths: [],
+  it.each(['read_multiple_files', 'read_files'])(
+    'blocks empty paths list for multi-read alias %s',
+    (toolName) => {
+      const req = createMockReq({
+        method: 'tools/call',
+        params: {
+          name: toolName,
+          arguments: {
+            paths: [],
+          },
         },
-      },
-    });
-    const { res } = createMockRes();
-    const next = jest.fn();
+      });
+      const { res } = createMockRes();
+      const next = jest.fn();
 
-    validator(req as Request, res as Response, next as NextFunction);
+      validator(req as Request, res as Response, next as NextFunction);
 
-    expect(next).not.toHaveBeenCalled();
-    expect(res.status).toHaveBeenCalledWith(403);
-  });
+      expect(next).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(403);
+    },
+  );
 
   it('allows a strict directory_tree payload', () => {
     const req = createMockReq({

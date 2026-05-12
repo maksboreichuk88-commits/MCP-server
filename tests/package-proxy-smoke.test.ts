@@ -163,8 +163,8 @@ describe('packaged proxy smoke', () => {
     const packagedProxy = spawn(
       process.platform === 'win32' ? process.execPath : 'npx',
       process.platform === 'win32'
-        ? [npxCliPath as string, '--yes', `--package=${tarballPath}`, 'mcp-transport-firewall']
-        : ['--yes', `--package=${tarballPath}`, 'mcp-transport-firewall'],
+        ? [npxCliPath as string, '--yes', `--package=${tarballPath}`, 'toolwall']
+        : ['--yes', `--package=${tarballPath}`, 'toolwall'],
       {
         cwd: repoRoot,
         env: {
@@ -233,5 +233,6 @@ describe('packaged proxy smoke', () => {
     }
 
     expect(naturalExitCode).toBe(0);
-  }, 120000);
+  // This path shells out to npm pack plus a tarball-backed npx run, so the full suite needs a wider budget on Windows.
+  }, 240000);
 });

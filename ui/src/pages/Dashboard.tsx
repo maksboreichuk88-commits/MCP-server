@@ -408,7 +408,7 @@ export default function Dashboard() {
 
         <footer className="text-center text-gray-600 text-sm pt-4 border-t border-gray-800">
           <p>Toolwall admin dashboard</p>
-          <p className="text-xs mt-1">Technical package and CLI identity: mcp-transport-firewall</p>
+          <p className="text-xs mt-1">Technical package and CLI identity: toolwall</p>
         </footer>
       </div>
     </div>

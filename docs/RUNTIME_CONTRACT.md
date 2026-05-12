@@ -1,13 +1,13 @@
 ## Runtime Contract
 
-This page describes the expected runtime behavior of `mcp-transport-firewall` for local operators and downstream MCP setups.
+This page describes the expected runtime behavior of `toolwall` for local operators and downstream MCP setups.
 
 Supported entry points:
 
 ```bash
-npx -y mcp-transport-firewall
-npx -y mcp-transport-firewall --help
-npm install -g mcp-transport-firewall
+npx -y toolwall
+npx -y toolwall --help
+npm install -g toolwall
 ```
 
 Recommended order:
@@ -47,6 +47,16 @@ Mode 2: protected downstream proxy
 - non-`tools/call` JSON-RPC messages pass through the stdio proxy without trust-gate evaluation
 - downstream result and error payloads are sanitized before they return to the caller
 
+## Current response-side sanitization
+
+- downstream JSON-RPC `result` and `error` payloads are sanitized before they return to the caller
+- non-JSON-RPC output emitted by the downstream target is also sanitized before it is written back upstream
+- structured sensitive keys are masked
+- stack traces, sensitive file paths, IP addresses, and email addresses are redacted
+- plain-text `Authorization: Bearer ...` headers are redacted when they appear directly in downstream strings
+- inline secret assignments such as `OPENAI_API_KEY=...` or `"access_token":"..."` are redacted when they appear directly in downstream strings
+- this is narrow response-side redaction, not a claim of complete semantic secret discovery
+
 ## Trust-gate order
 
 1. shared-secret authorization and scope extraction
@@ -55,6 +65,8 @@ Mode 2: protected downstream proxy
 4. egress and injection marker validation
 5. preflight validation for explicit `blue` actions and default high-trust tool families
 6. strict schema validation for registered tool contracts
+
+When stdio auth is not configured, steps `1` and `2` are skipped instead of becoming universal deny gates.
 
 Blocked requests fail closed and are not forwarded to the downstream target.
 
@@ -88,9 +100,11 @@ Observed denial surfaces include:
 - on process start, secondary-surface route state is restored from `route-registry.json` under the startup cache root (`MCP_CACHE_DIR` or the default `.mcp-cache` directory)
 - admin route registration, deletion, and clear operations update that on-disk snapshot before the in-memory registry is swapped in
 - if the route snapshot is missing, unreadable, or invalid, the HTTP harness fails closed with an empty registry instead of guessing
-- preflight registrations remain in-memory and do not survive restart
-- color-boundary session state remains in-memory and does not survive restart
-- tenant rate-limit config remains in-memory and does not survive restart in this batch
+- preflight registrations remain intentionally in-memory and do not survive restart
+- consumed preflight replay state remains intentionally in-memory and does not survive restart
+- color-boundary session state remains intentionally in-memory and does not survive restart
+- tenant rate-limit config remains intentionally in-memory and does not survive restart in this batch
+- tenant rate-limit config is still a secondary admin-plane override surface, not a durable policy store
 
 ## Core runtime variables
 

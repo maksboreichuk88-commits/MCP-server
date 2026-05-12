@@ -1,6 +1,6 @@
 {
-  "name": "mcp-transport-firewall",
-  "version": "2.2.5",
+  "name": "toolwall",
+  "version": "2.2.6",
   "description": "Fail-closed stdio firewall for risky local MCP JSON-RPC tool calls",
   "main": "dist/lib.js",
   "exports": {
@@ -8,8 +8,44 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "dist",
-    "docs",
+    "dist/admin/index.js",
+    "dist/cache/index.js",
+    "dist/cache/l1-cache.js",
+    "dist/cache/l2-cache.js",
+    "dist/cli-options.js",
+    "dist/cli.js",
+    "dist/embedded/server.js",
+    "dist/errors.js",
+    "dist/lib.js",
+    "dist/mcp-tool-schemas.js",
+    "dist/metrics/prometheus.js",
+    "dist/middleware/ast-egress-filter.js",
+    "dist/middleware/color-boundary.js",
+    "dist/middleware/nhi-auth-validator.js",
+    "dist/middleware/preflight-validator.js",
+    "dist/middleware/rate-limiter.js",
+    "dist/middleware/schema-validator.js",
+    "dist/middleware/scope-validator.js",
+    "dist/proxy/circuit-breaker.js",
+    "dist/proxy/router.js",
+    "dist/proxy/shadow-leak-sanitizer.js",
+    "dist/proxy/types.js",
+    "dist/runtime-config.js",
+    "dist/stdio/proxy.js",
+    "dist/utils/auditLogger.js",
+    "dist/utils/mcp-request.js",
+    "docs/CLIENT_CONFIG_EXAMPLES.md",
+    "docs/DEMO_RUN_TRANSCRIPT.md",
+    "docs/EVIDENCE_BUNDLE.md",
+    "docs/GUIDED_SETUP_AND_AUDITS.md",
+    "docs/LIMITS_AND_NON_GOALS.md",
+    "docs/PROXY_SETUP.md",
+    "docs/QUICKSTART.md",
+    "docs/RISK_MODEL.md",
+    "docs/RISK_SUMMARY.md",
+    "docs/RUNTIME_CONTRACT.md",
+    "docs/VERIFICATION_GUIDE.md",
+    "docs/WORKFLOW_HARDENING.md",
     ".env.example",
     "LICENSE",
     "README.md",
@@ -18,16 +54,16 @@
     "SUPPORT.md"
   ],
   "bin": {
-    "mcp-transport-firewall": "dist/cli.js"
+    "toolwall": "dist/cli.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/shleder/mcp-transport-firewall.git"
+    "url": "git+https://github.com/shleder/toolwall.git"
   },
   "bugs": {
-    "url": "https://github.com/shleder/mcp-transport-firewall/issues"
+    "url": "https://github.com/shleder/toolwall/issues"
   },
-  "homepage": "https://github.com/shleder/mcp-transport-firewall#readme",
+  "homepage": "https://github.com/shleder/toolwall#readme",
   "license": "MIT",
   "keywords": [
     "mcp",
@@ -53,6 +89,7 @@
   },
   "scripts": {
     "assert:package-metadata": "node scripts/assert-package-metadata.mjs",
+    "build:bin": "bun build ./src/index.ts --compile --outfile toolwall",
     "build": "tsc",
     "start": "node dist/index.js",
     "start:cli": "node dist/cli.js",

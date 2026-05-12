@@ -1,0 +1,60 @@
+TASK NAME:
+- Day 4: sharpen README above the fold
+
+REPO ROOT:
+- C:\Users\777\OneDrive\Desktop\Calculator\GITMCP\toolwall
+
+CURRENT PRODUCT DIRECTION:
+- Toolwall is the display name
+- toolwall remains the install/package identity
+- one flagship stdio filesystem/search workflow only
+
+TRUTH DISCIPLINE:
+- README must reflect the checked-out proof boundary truthfully
+- do not imply unpublished work is already public/current
+- do not imply perfect semantic safety or total MCP coverage
+
+DAY GOAL:
+- make the first visible README screen explain what this is, who it is for, what it protects, how to try it, and what it does not claim
+
+INSPECT FIRST:
+1. README.md
+2. docs/CURRENT_STATE_GROUNDED.md
+3. docs/RUNTIME_CONTRACT.md
+4. docs/RISK_MODEL.md
+5. docs/LIMITS_AND_NON_GOALS.md
+6. toolwall-execution-system/DAY_04.md
+
+MANDATORY LIVE AUDIT:
+- git rev-parse --show-toplevel
+- git status --short --branch
+- git branch --show-current
+- git log --oneline --decorate -n 20
+- git diff --stat origin/main..HEAD
+
+IN SCOPE:
+- above-the-fold README only
+- tiny coupled truth-sync if needed
+
+OUT OF SCOPE:
+- full quickstart
+- launch texts
+- runtime code changes
+- package rename
+
+REQUIRED VERIFICATION:
+- git diff --check
+- rerun npm run demo:stdio only if the claimed proof path/output story changes materially
+
+REPORTING:
+- update PROGRAM_STATUS
+- write a repo-local day report
+- sync INDEX and latest
+
+FINAL OUTPUT:
+1. current day
+2. why this day is next
+3. what changed
+4. verification
+5. day result
+6. next required day

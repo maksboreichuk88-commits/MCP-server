@@ -83,7 +83,7 @@ Use the guided setup path when:
 
 Open a request here:
 
-- [guided setup request](https://github.com/shleder/mcp-transport-firewall/issues/new?template=guided-setup-request.yml)
+- [guided setup request](https://github.com/shleder/toolwall/issues/new?template=guided-setup-request.yml)
 
 Early operator note:
 

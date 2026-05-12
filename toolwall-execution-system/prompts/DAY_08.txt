@@ -1,0 +1,54 @@
+TASK NAME:
+- Day 8: truth-sync first-read repo surfaces
+
+REPO ROOT:
+- C:\Users\777\OneDrive\Desktop\Calculator\GITMCP\toolwall
+
+CURRENT PRODUCT DIRECTION:
+- one clear product story
+- one proof-first stdio workflow
+- one stable install identity
+
+TRUTH DISCIPLINE:
+- sync wording to the checked-out branch, not to imagined future release state
+- keep first-read surfaces aligned with one another
+
+DAY GOAL:
+- make README, quickstart, limits, and demo-facing surfaces tell one non-contradictory story
+
+INSPECT FIRST:
+1. README.md
+2. quickstart surface from Day 5
+3. docs/LIMITS_AND_NON_GOALS.md
+4. docs/DEMO_RUN_TRANSCRIPT.md
+5. docs/PROXY_SETUP.md
+6. toolwall-execution-system/DAY_08.md
+
+MANDATORY LIVE AUDIT:
+- git rev-parse --show-toplevel
+- git status --short --branch
+- git branch --show-current
+- git log --oneline --decorate -n 20
+- git diff --stat origin/main..HEAD
+
+IN SCOPE:
+- first-read surface consistency only
+
+OUT OF SCOPE:
+- deep runtime docs rewrite
+- GitHub metadata work
+
+REQUIRED VERIFICATION:
+- git diff --check
+- rerun only the proof command(s) whose story changed
+
+REPORTING:
+- update PROGRAM_STATUS
+- sync repo-local report files
+
+FINAL OUTPUT:
+1. surfaces synced
+2. what changed
+3. verification
+4. day result
+5. next required day

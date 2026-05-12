@@ -89,10 +89,15 @@ export interface TenantRateLimitConfig {
   maxRequests: number;
 }
 
+// Intentionally process-local: secondary-surface tenant overrides are not restart-durable.
 const tenantConfigs = new Map<string, TenantRateLimitConfig>();
 
 export const configureTenantRateLimit = (tenantId: string, config: Omit<TenantRateLimitConfig, 'tenantId'>): void => {
   tenantConfigs.set(tenantId, { tenantId, ...config });
+};
+
+export const clearTenantRateLimitConfigs = (): void => {
+  tenantConfigs.clear();
 };
 
 export const removeTenantRateLimit = (tenantId: string): boolean => {

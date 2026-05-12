@@ -7,7 +7,7 @@ const currentFilePath = fileURLToPath(import.meta.url);
 const currentDirPath = path.dirname(currentFilePath);
 const repoRoot = path.resolve(currentDirPath, '..');
 const packageJsonPath = path.join(repoRoot, 'package.json');
-const expectedRepository = 'shleder/mcp-transport-firewall';
+const expectedRepository = 'shleder/toolwall';
 
 const readPackageJson = () => JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 

@@ -1,0 +1,54 @@
+TASK NAME:
+- Day 3: confirm the full serial proof surface
+
+REPO ROOT:
+- C:\Users\777\OneDrive\Desktop\Calculator\GITMCP\toolwall
+
+CURRENT PRODUCT DIRECTION:
+- protect one local filesystem/search MCP workflow over stdio
+- keep the proof story narrow, repeatable, and local-first
+
+TRUTH DISCIPLINE:
+- proof must be rerun serially on the live checked-out boundary
+- do not treat historical green runs as current proof
+- local verification is local-only unless public evidence exists separately
+
+DAY GOAL:
+- rerun and confirm the full local verification surface serially
+
+INSPECT FIRST:
+1. package.json
+2. docs/CURRENT_STATE_GROUNDED.md
+3. docs/VERIFICATION_GUIDE.md
+4. toolwall-execution-system/DAY_03.md
+
+MANDATORY LIVE AUDIT:
+- git rev-parse --show-toplevel
+- git status --short --branch
+- git branch --show-current
+- git log --oneline --decorate -n 20
+- git diff --stat origin/main..HEAD
+
+REQUIRED VERIFICATION:
+- npm run assert:package-metadata
+- npm run typecheck
+- npm test
+- npm run pack:dry-run
+- npm run pack:smoke
+- npm run demo:stdio
+
+OUT OF SCOPE:
+- new feature work
+- docs polish beyond tiny truth-sync needed to record the result
+
+REPORTING:
+- record exactly what passed
+- record anything intentionally not rerun
+- update PROGRAM_STATUS and repo-local reports
+
+FINAL OUTPUT:
+1. audit state
+2. verification run
+3. result
+4. what changed
+5. next required day

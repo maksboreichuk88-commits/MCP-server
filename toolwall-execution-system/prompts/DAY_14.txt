@@ -1,0 +1,53 @@
+TASK NAME:
+- Day 14: execute the first launch wave
+
+REPO ROOT:
+- C:\Users\777\OneDrive\Desktop\Calculator\GITMCP\toolwall
+
+CURRENT PRODUCT DIRECTION:
+- the launch wave must stay narrow, proof-first, and useful to real users
+
+TRUTH DISCIPLINE:
+- state clearly what is local-only and what is public/current
+- do not fake release truth
+
+DAY GOAL:
+- execute the first proof-first launch wave against the prepared repo surface
+
+INSPECT FIRST:
+1. PROGRAM_STATUS.md
+2. launch texts
+3. proof-pack surface
+4. dry-run result
+5. toolwall-execution-system/DAY_14.md
+
+MANDATORY LIVE AUDIT:
+- git rev-parse --show-toplevel
+- git status --short --branch
+- git branch --show-current
+- git log --oneline --decorate -n 20
+- git diff --stat origin/main..HEAD
+
+IN SCOPE:
+- first launch execution steps
+- use of prepared launch texts
+- proof-pack linking
+
+OUT OF SCOPE:
+- speculative expansion
+- premature monetization packaging
+- fake release claims
+
+REQUIRED VERIFICATION:
+- verify the exact artifacts/surfaces used in the launch wave before executing it
+
+REPORTING:
+- update PROGRAM_STATUS
+- sync repo-local report files
+
+FINAL OUTPUT:
+1. launch state
+2. what was executed
+3. verification
+4. day result
+5. next required step

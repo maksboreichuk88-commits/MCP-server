@@ -1,6 +1,6 @@
-name: Guided setup request
-description: Request guided help for a protected local MCP workflow, hardening review, or trust-gate tuning.
-title: "[guided-setup] "
+name: Workflow intake request
+description: Request focused help for one protected local MCP workflow, hardening review, or trust-gate tuning.
+title: "[workflow-intake] "
 body:
   - type: input
     id: client

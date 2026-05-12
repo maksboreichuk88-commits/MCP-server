@@ -1,5 +1,5 @@
 
-React/Vite admin UI for the MCP Transport Firewall.
+React/Vite admin UI for the Toolwall.
 
 The dashboard is not the primary boundary. The primary boundary is the stdio firewall runtime. The UI shows operational state for local inspection:
 

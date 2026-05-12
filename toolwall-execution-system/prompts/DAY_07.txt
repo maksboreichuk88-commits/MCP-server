@@ -1,0 +1,54 @@
+TASK NAME:
+- Day 7: build one strong demo scenario
+
+REPO ROOT:
+- C:\Users\777\OneDrive\Desktop\Calculator\GITMCP\toolwall
+
+CURRENT PRODUCT DIRECTION:
+- prove the flagship stdio filesystem/search workflow with one memorable scenario
+
+TRUTH DISCIPLINE:
+- the demo must match actual script/runtime behavior
+- do not invent synthetic claims beyond the current proof path
+
+DAY GOAL:
+- define and document one strong primary demo scenario for allow/cache/deny behavior
+
+INSPECT FIRST:
+1. scripts/stdio-demo.mjs
+2. docs/DEMO_RUN_TRANSCRIPT.md
+3. README.md
+4. docs/PROXY_SETUP.md
+5. examples/README.md
+6. toolwall-execution-system/DAY_07.md
+
+MANDATORY LIVE AUDIT:
+- git rev-parse --show-toplevel
+- git status --short --branch
+- git branch --show-current
+- git log --oneline --decorate -n 20
+- git diff --stat origin/main..HEAD
+
+IN SCOPE:
+- one primary demo narrative
+- tiny doc truth-sync around that narrative
+
+OUT OF SCOPE:
+- multi-demo catalog
+- benchmark redesign
+- new workflow family onboarding
+
+REQUIRED VERIFICATION:
+- git diff --check
+- npm run demo:stdio
+
+REPORTING:
+- update PROGRAM_STATUS
+- sync repo-local report files
+
+FINAL OUTPUT:
+1. demo scenario
+2. what changed
+3. verification
+4. day result
+5. next required day

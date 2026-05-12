@@ -256,6 +256,41 @@ describe("preflightValidator", () => {
     expect(body.error.code).toBe("PREFLIGHT_ALREADY_USED");
   });
 
+  it("does not preserve consumed preflight replay state across a restart-style registry reset", () => {
+    const validId = "550e8400-e29b-41d4-a716-446655440004";
+    registerPreflight(validId);
+
+    const consumeReq = createMockReq({
+      method: "tools/call",
+      params: {
+        name: "execute_command",
+        arguments: {
+          command: "node",
+          args: ["--version"],
+        },
+        preflightId: validId,
+      },
+    });
+
+    const consumeRes = createMockRes();
+    const consumeNext = jest.fn();
+
+    preflightValidator(consumeReq as Request, consumeRes as Response, consumeNext as NextFunction);
+
+    expect(consumeNext).toHaveBeenCalledTimes(1);
+
+    clearPreflightRegistries();
+    registerPreflight(validId);
+
+    const replayAfterResetRes = createMockRes();
+    const replayAfterResetNext = jest.fn();
+
+    preflightValidator(consumeReq as Request, replayAfterResetRes as Response, replayAfterResetNext as NextFunction);
+
+    expect(replayAfterResetNext).toHaveBeenCalledTimes(1);
+    expect(replayAfterResetRes.status).not.toHaveBeenCalled();
+  });
+
   it("allows Red tool without preflightId", () => {
     const req = createMockReq({
       params: {

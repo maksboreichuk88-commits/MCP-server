@@ -10,13 +10,19 @@ import { createAdminRouter } from '../src/admin/index.js';
 import { clearColorSessions } from '../src/middleware/color-boundary.js';
 import { resetRuntimeMetrics } from '../src/metrics/prometheus.js';
 import { clearPreflightRegistries } from '../src/middleware/preflight-validator.js';
+import { clearTenantRateLimitConfigs } from '../src/middleware/rate-limiter.js';
 import { clearRoutes, registerRoute } from '../src/proxy/router.js';
 import { resetBlockedRequestMetrics } from '../src/utils/auditLogger.js';
 
 const serverToken = '12345678901234567890123456789012';
+const adminToken = 'abcdefghijklmnopqrstuvwxyzABCDEF';
 
 const createAuthHeader = (scopes: string[]): string => {
   return `Bearer ${Buffer.from(JSON.stringify({ token: serverToken, scopes })).toString('base64')}`;
+};
+
+const createAdminAuthHeader = (): string => {
+  return `Bearer ${adminToken}`;
 };
 
 describe('admin blocked-request metrics', () => {
@@ -29,6 +35,7 @@ describe('admin blocked-request metrics', () => {
   beforeAll(async () => {
     process.env.NODE_ENV = 'test';
     process.env.PROXY_AUTH_TOKEN = serverToken;
+    process.env.ADMIN_TOKEN = adminToken;
     const module = await import('../src/index.js');
     app = module.default;
     adminApp = express();
@@ -40,6 +47,7 @@ describe('admin blocked-request metrics', () => {
     clearRoutes();
     clearPreflightRegistries();
     clearColorSessions();
+    clearTenantRateLimitConfigs();
     resetBlockedRequestMetrics();
     resetRuntimeMetrics();
 
@@ -86,6 +94,7 @@ describe('admin blocked-request metrics', () => {
   afterEach(async () => {
     resetBlockedRequestMetrics();
     resetRuntimeMetrics();
+    clearTenantRateLimitConfigs();
 
     await new Promise<void>((resolve) => {
       if (targetServer?.listening) {
@@ -104,6 +113,7 @@ describe('admin blocked-request metrics', () => {
   afterAll(() => {
     delete process.env.NODE_ENV;
     delete process.env.PROXY_AUTH_TOKEN;
+    delete process.env.ADMIN_TOKEN;
   });
 
   it('exposes blocked-request metrics through the admin stats surface', async () => {
@@ -173,5 +183,37 @@ describe('admin blocked-request metrics', () => {
     expect(response.text).toContain('mcp_firewall_registered_routes 1');
     expect(response.text).toContain('mcp_firewall_blocked_requests_total 1');
     expect(response.text).toContain('mcp_firewall_blocked_requests_by_code_total{code="SHADOWLEAK_DETECTED"} 1');
+  });
+
+  it('does not preserve tenant rate-limit config across a restart-style config reset', async () => {
+    await request(adminApp)
+      .post('/rate-limit/tenant')
+      .set('Authorization', createAdminAuthHeader())
+      .send({
+        tenantId: 'tenant-a',
+        windowMs: 120000,
+        maxRequests: 17,
+      })
+      .expect(200);
+
+    const beforeReset = await request(adminApp)
+      .get('/rate-limit/stats')
+      .expect(200);
+
+    expect(beforeReset.body.rateLimit.tenants).toEqual([
+      {
+        tenantId: 'tenant-a',
+        windowMs: 120000,
+        maxRequests: 17,
+      },
+    ]);
+
+    clearTenantRateLimitConfigs();
+
+    const afterReset = await request(adminApp)
+      .get('/rate-limit/stats')
+      .expect(200);
+
+    expect(afterReset.body.rateLimit.tenants).toEqual([]);
   });
 });

@@ -8,26 +8,67 @@ const repoRoot = path.resolve(currentDirPath, '..');
 const packageJsonPath = path.join(repoRoot, 'package.json');
 
 const expectedMetadata = {
-  name: 'mcp-transport-firewall',
+  name: 'toolwall',
   main: 'dist/lib.js',
   exportRoot: './dist/lib.js',
   exportPackageJson: './package.json',
   binPath: 'dist/cli.js',
-  repositoryUrl: 'git+https://github.com/shleder/mcp-transport-firewall.git',
-  homepage: 'https://github.com/shleder/mcp-transport-firewall#readme',
-  bugsUrl: 'https://github.com/shleder/mcp-transport-firewall/issues',
+  repositoryUrl: 'git+https://github.com/shleder/toolwall.git',
+  homepage: 'https://github.com/shleder/toolwall#readme',
+  bugsUrl: 'https://github.com/shleder/toolwall/issues',
   publishAccess: 'public',
   nodeEngine: '>=20.0.0',
   prepareScript: 'npm run build',
   requiredFiles: [
-    'dist',
-    'docs',
+    'dist/admin/index.js',
+    'dist/cache/index.js',
+    'dist/cache/l1-cache.js',
+    'dist/cache/l2-cache.js',
+    'dist/cli-options.js',
+    'dist/cli.js',
+    'dist/embedded/server.js',
+    'dist/errors.js',
+    'dist/lib.js',
+    'dist/mcp-tool-schemas.js',
+    'dist/metrics/prometheus.js',
+    'dist/middleware/ast-egress-filter.js',
+    'dist/middleware/color-boundary.js',
+    'dist/middleware/nhi-auth-validator.js',
+    'dist/middleware/preflight-validator.js',
+    'dist/middleware/rate-limiter.js',
+    'dist/middleware/schema-validator.js',
+    'dist/middleware/scope-validator.js',
+    'dist/proxy/circuit-breaker.js',
+    'dist/proxy/router.js',
+    'dist/proxy/shadow-leak-sanitizer.js',
+    'dist/proxy/types.js',
+    'dist/runtime-config.js',
+    'dist/stdio/proxy.js',
+    'dist/utils/auditLogger.js',
+    'dist/utils/mcp-request.js',
+    'docs/CLIENT_CONFIG_EXAMPLES.md',
+    'docs/DEMO_RUN_TRANSCRIPT.md',
+    'docs/EVIDENCE_BUNDLE.md',
+    'docs/GUIDED_SETUP_AND_AUDITS.md',
+    'docs/LIMITS_AND_NON_GOALS.md',
+    'docs/PROXY_SETUP.md',
+    'docs/QUICKSTART.md',
+    'docs/RISK_MODEL.md',
+    'docs/RISK_SUMMARY.md',
+    'docs/RUNTIME_CONTRACT.md',
+    'docs/VERIFICATION_GUIDE.md',
+    'docs/WORKFLOW_HARDENING.md',
     '.env.example',
     'LICENSE',
     'README.md',
     'CHANGELOG.md',
     'SECURITY.md',
     'SUPPORT.md',
+  ],
+  forbiddenFiles: [
+    'dist',
+    'docs/STDIO_BENCHMARK_GUIDE.md',
+    'docs/STDIO_BENCHMARK_SNAPSHOT.json',
   ],
 };
 
@@ -38,6 +79,7 @@ export const readPackageJson = () => {
 export const validatePackageMetadata = (pkg) => {
   const mismatches = [];
   const packageFiles = Array.isArray(pkg.files) ? pkg.files : [];
+  const expectedFiles = new Set(expectedMetadata.requiredFiles);
 
   if (pkg.name !== expectedMetadata.name) {
     mismatches.push(`name must be ${expectedMetadata.name}, got ${pkg.name ?? 'undefined'}`);
@@ -55,8 +97,8 @@ export const validatePackageMetadata = (pkg) => {
     mismatches.push(`exports["./package.json"] must be ${expectedMetadata.exportPackageJson}, got ${pkg.exports?.['./package.json'] ?? 'undefined'}`);
   }
 
-  if (pkg.bin?.['mcp-transport-firewall'] !== expectedMetadata.binPath) {
-    mismatches.push(`bin.mcp-transport-firewall must be ${expectedMetadata.binPath}, got ${pkg.bin?.['mcp-transport-firewall'] ?? 'undefined'}`);
+  if (pkg.bin?.['toolwall'] !== expectedMetadata.binPath) {
+    mismatches.push(`bin.toolwall must be ${expectedMetadata.binPath}, got ${pkg.bin?.['toolwall'] ?? 'undefined'}`);
   }
 
   if (pkg.repository?.url !== expectedMetadata.repositoryUrl) {
@@ -86,6 +128,18 @@ export const validatePackageMetadata = (pkg) => {
   for (const requiredFile of expectedMetadata.requiredFiles) {
     if (!packageFiles.includes(requiredFile)) {
       mismatches.push(`files must include ${requiredFile}`);
+    }
+  }
+
+  for (const packageFile of packageFiles) {
+    if (!expectedFiles.has(packageFile)) {
+      mismatches.push(`files must not include unexpected entry ${packageFile}`);
+    }
+  }
+
+  for (const forbiddenFile of expectedMetadata.forbiddenFiles) {
+    if (packageFiles.includes(forbiddenFile)) {
+      mismatches.push(`files must not include ${forbiddenFile}`);
     }
   }
 

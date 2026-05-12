@@ -4,7 +4,7 @@ Updated: 2026-04-02
 
 ## Product Shape
 
-`mcp-transport-firewall` ships one npm package with one operator-facing stdio boundary and one bundled embedded fallback target:
+`toolwall` ships one npm package with one operator-facing stdio boundary and one bundled embedded fallback target:
 
 - downstream stdio firewall proxy for a real local MCP target
 - bundled embedded MCP server for status/help tools when no external target is configured

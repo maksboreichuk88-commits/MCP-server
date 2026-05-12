@@ -2,20 +2,16 @@ import express, { NextFunction, Request, Response } from 'express';
 import fs from 'node:fs';
 import type { Server } from 'node:http';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import { getCache, initializeCache } from '../cache/index.js';
-import { clearColorSessions } from '../middleware/color-boundary.js';
 import { renderPrometheusMetrics } from '../metrics/prometheus.js';
 import { clearPreflightRegistries, getPreflightStats, registerPreflight } from '../middleware/preflight-validator.js';
 import { configureTenantRateLimit, getRateLimitStats, removeTenantRateLimit } from '../middleware/rate-limiter.js';
-import { getAllCircuitBreakerStats, getOrCreateCircuitBreaker } from '../proxy/circuit-breaker.js';
 import { clearRoutes, getRegisteredRoutes, registerRoute, removeRoute } from '../proxy/router.js';
-import { auditLog, configureSIEM, getBlockedRequestMetrics, getSIEMConfig } from '../utils/auditLogger.js';
+import { auditLog, getBlockedRequestMetrics } from '../utils/auditLogger.js';
 
-const currentFilePath = fileURLToPath(import.meta.url);
-const currentDirPath = path.dirname(currentFilePath);
-const adminUiPath = path.resolve(currentDirPath, '../../ui/dist');
+const executableDir = typeof process !== 'undefined' && 'isBun' in process && process.isBun ? path.dirname(process.execPath) : process.cwd();
+const adminUiPath = path.join(executableDir, 'ui', 'dist');
 
 const AdminAuthSchema = z.object({
   token: z.string().min(32),
@@ -25,13 +21,6 @@ const TenantRateLimitSchema = z.object({
   tenantId: z.string().min(1),
   windowMs: z.number().int().min(1000).max(3600000).default(60000),
   maxRequests: z.number().int().min(1).max(10000).default(100),
-});
-
-const SIEMConfigSchema = z.object({
-  enabled: z.boolean(),
-  format: z.enum(['CEF', 'SYSLOG']).default('SYSLOG'),
-  host: z.string().default('localhost'),
-  port: z.number().int().min(1).max(65535).default(514),
 });
 
 const PreflightSchema = z.object({
@@ -60,34 +49,27 @@ const RouteConfigSchema = z.object({
   headers: z.record(z.string()).optional(),
 });
 
-const CircuitBreakerConfigSchema = z.object({
-  name: z.string().min(1),
-  failureThreshold: z.number().int().min(1).max(100).default(5),
-  resetTimeoutMs: z.number().int().min(1000).max(60000).default(30000),
-  halfOpenMaxCalls: z.number().int().min(1).max(10).default(3),
-});
-
 const adminAuthMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   const adminToken = process.env.ADMIN_TOKEN;
 
   if (!adminToken) {
     auditLog('ADMIN_NOT_CONFIGURED', {
-      reason: 'Admin API not configured. Set ADMIN_TOKEN.',
+      reason: 'Admin API not configured',
       path: req.originalUrl,
       ip: req.ip,
     });
-    res.status(503).json({ error: { code: 'ADMIN_NOT_CONFIGURED', message: 'Admin API not configured. Set ADMIN_TOKEN.' } });
+    res.status(503).json({ error: { code: 'ADMIN_NOT_CONFIGURED', message: 'Admin API not configured' } });
     return;
   }
 
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     auditLog('UNAUTHORIZED', {
-      reason: 'Bearer token required.',
+      reason: 'Bearer token required',
       path: req.originalUrl,
       ip: req.ip,
     });
-    res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'Bearer token required.' } });
+    res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'Bearer token required' } });
     return;
   }
 
@@ -97,22 +79,22 @@ const adminAuthMiddleware = (req: Request, res: Response, next: NextFunction): v
     const parsed = AdminAuthSchema.parse({ token });
     if (parsed.token !== adminToken) {
       auditLog('UNAUTHORIZED', {
-        reason: 'Invalid admin token.',
+        reason: 'Invalid admin token',
         path: req.originalUrl,
         ip: req.ip,
       });
-      res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'Invalid admin token.' } });
+      res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'Invalid admin token' } });
       return;
     }
 
     next();
   } catch {
     auditLog('UNAUTHORIZED', {
-      reason: 'Invalid admin token format.',
+      reason: 'Invalid admin token format',
       path: req.originalUrl,
       ip: req.ip,
     });
-    res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'Invalid admin token format.' } });
+    res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'Invalid admin token format' } });
   }
 };
 
@@ -183,7 +165,6 @@ const createAdminRouter = (): express.Router => {
   router.delete('/routes', adminAuthMiddleware, (_req: Request, res: Response) => {
     try {
       clearRoutes();
-      clearColorSessions();
       auditLog('ADMIN_ROUTES_CLEARED', {});
       res.json({ success: true });
     } catch (error) {
@@ -269,42 +250,11 @@ const createAdminRouter = (): express.Router => {
     res.json({ success: removed, tenantId });
   });
 
-  router.get('/circuit-breakers', (_req: Request, res: Response) => {
-    res.json({ circuitBreakers: getAllCircuitBreakerStats() });
-  });
-
-  router.post('/circuit-breakers', adminAuthMiddleware, (req: Request, res: Response) => {
-    try {
-      const parsed = CircuitBreakerConfigSchema.parse(req.body);
-      getOrCreateCircuitBreaker(parsed);
-      auditLog('ADMIN_CIRCUIT_BREAKER_CREATED', { name: parsed.name });
-      res.json({ success: true, name: parsed.name });
-    } catch (error) {
-      res.status(400).json({ error: { code: 'INVALID_CONFIG', message: error instanceof Error ? error.message : 'Invalid config' } });
-    }
-  });
-
-  router.get('/siem/config', adminAuthMiddleware, (_req: Request, res: Response) => {
-    res.json(getSIEMConfig());
-  });
-
-  router.post('/siem/config', adminAuthMiddleware, (req: Request, res: Response) => {
-    try {
-      const parsed = SIEMConfigSchema.parse(req.body);
-      configureSIEM(parsed);
-      auditLog('ADMIN_SIEM_CONFIGURED', { config: parsed });
-      res.json({ success: true });
-    } catch (error) {
-      res.status(400).json({ error: { code: 'INVALID_CONFIG', message: error instanceof Error ? error.message : 'Invalid SIEM config' } });
-    }
-  });
-
   router.get('/stats', (_req: Request, res: Response) => {
     const cache = getCache();
     res.json({
       routes: getRegisteredRoutes().size,
       cache: cache?.getStats() ?? null,
-      circuitBreakers: getAllCircuitBreakerStats(),
       preflight: getPreflightStats(),
       rateLimit: getRateLimitStats(),
       blockedRequests: getBlockedRequestMetrics(),
@@ -344,7 +294,6 @@ export const startAdminServer = (port: number = 9090): Server => {
 
   adminServer = app.listen(port, () => {
     auditLog('ADMIN_SERVER_STARTED', { port });
-    console.log(`Admin API listening on port ${port}`);
   });
 
   return adminServer;

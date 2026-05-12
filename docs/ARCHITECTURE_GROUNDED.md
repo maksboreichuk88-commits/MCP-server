@@ -26,7 +26,7 @@ Target resolution order is implemented in `src/cli-options.ts`:
 
 Grounded operator detail:
 
-- a plain `npx -y mcp-transport-firewall` invocation still enters the stdio proxy path
+- a plain `npx -y toolwall` invocation still enters the stdio proxy path
 - if no explicit downstream target is configured, the proxy spawns the packaged embedded server as its fallback target
 
 ## Stdio Proxy Path

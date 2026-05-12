@@ -83,6 +83,18 @@ const request = (message, timeoutMs = 5000) => {
   });
 };
 
+const waitForProxyReady = async () => {
+  const warmupResponse = await request({
+    jsonrpc: '2.0',
+    id: 'warmup',
+    method: 'ping',
+  }, 8000);
+
+  if (warmupResponse?.result?.ok !== true) {
+    throw new Error('Expected the stdio demo warmup request to receive an ok=true response.');
+  }
+};
+
 const ensureErrorCode = (response, code) => {
   const actual = response?.error?.data?.code;
   if (actual !== code) {
@@ -91,6 +103,8 @@ const ensureErrorCode = (response, code) => {
 };
 
 const main = async () => {
+  await waitForProxyReady();
+
   const allowedRequest = {
     jsonrpc: '2.0',
     id: 1,

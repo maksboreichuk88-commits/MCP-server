@@ -86,13 +86,13 @@ export const renderPrometheusMetrics = (): string => {
   lines.push(
     ...renderMetric(
       'mcp_firewall_http_requests_total',
-      'Total HTTP /mcp requests observed by the MCP transport firewall.',
+      'Total HTTP /mcp requests observed by the Toolwall.',
       'counter',
       { value: runtimeCounters.httpRequestsTotal },
     ),
     ...renderMetric(
       'mcp_firewall_stdio_requests_total',
-      'Total stdio JSON-RPC requests observed by the MCP transport firewall.',
+      'Total stdio JSON-RPC requests observed by the Toolwall.',
       'counter',
       { value: runtimeCounters.stdioRequestsTotal },
     ),

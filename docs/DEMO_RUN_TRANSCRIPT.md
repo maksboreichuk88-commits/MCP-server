@@ -1,5 +1,13 @@
 ## Demo Run Transcript
 
+Scenario:
+
+- protected local filesystem/search-style workflow
+- one allow request
+- one cache hit
+- one blocked exfiltration-shaped request
+- one blocked missing-auth request
+
 Proof path:
 
 ```powershell
@@ -25,4 +33,16 @@ What each line proves:
 - the exfiltration-shaped sample was denied before downstream execution
 - the missing-auth sample was denied at the transport boundary
 
-This is the transcript referenced by the README proof path.
+This is the transcript referenced by the README and quickstart proof path.
+
+What this scenario is good for:
+
+- a five-minute local proof that the main boundary still works
+- confirming that read/search traffic remains usable
+- confirming that the repo still demonstrates one concrete blocked path
+
+What this scenario is not:
+
+- a full benchmark replacement
+- a full filesystem MCP server demo
+- proof that every high-trust path is covered identically

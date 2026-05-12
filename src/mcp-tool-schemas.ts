@@ -98,6 +98,7 @@ export const mcpToolSchemas = {
   read: readFileSchema,
   open_file: readFileSchema,
   read_multiple_files: readMultipleFilesSchema,
+  read_files: readMultipleFilesSchema,
   write_file: writeFileSchema,
   write: writeFileSchema,
   create_file: createFileSchema,

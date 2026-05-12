@@ -37,6 +37,11 @@ const STACK_TRACE_PATTERNS: RegExp[] = [
 const IP_ADDRESS_PATTERN = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g;
 const EMAIL_PATTERN = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
 const FILE_PATH_PATTERN = /\/[\w\-\.\/]+(?:[\w\-\.]+\/?)+/g;
+const SECRET_TEXT_MARKER_PATTERN =
+  /authorization|token|secret|password|api[_-]?key|access[_-]?token|refresh[_-]?token|session[_-]?id|private[_-]?key|client[_-]?secret/i;
+const BEARER_TOKEN_PATTERN = /(Authorization\s*:\s*Bearer\s+)([^\s,;]+)/gi;
+const INLINE_SECRET_ASSIGNMENT_PATTERN =
+  /(["']?)([A-Za-z_][A-Za-z0-9_]*(?:TOKEN|SECRET|PASSWORD|API_KEY|ACCESS_TOKEN|REFRESH_TOKEN|SESSION_ID|PRIVATE_KEY|CLIENT_SECRET))\1(\s*[:=]\s*)(["']?)([^"'`\r\n]+?)\4(?=$|[\s,}])/gi;
 
 export interface SanitizeConfig {
   removeStackTraces: boolean;
@@ -57,6 +62,23 @@ const defaultConfig: SanitizeConfig = {
 const maskSensitiveKey = (key: string): string => {
   if (key.length <= 4) return '***';
   return key.slice(0, 2) + '*'.repeat(key.length - 4) + key.slice(-2);
+};
+
+const redactInlineSecrets = (value: string): string => {
+  if (!SECRET_TEXT_MARKER_PATTERN.test(value)) {
+    return value;
+  }
+
+  const withBearerHeadersRedacted = value.replace(
+    BEARER_TOKEN_PATTERN,
+    (_match, prefix: string) => `${prefix}[REDACTED]`
+  );
+
+  return withBearerHeadersRedacted.replace(
+    INLINE_SECRET_ASSIGNMENT_PATTERN,
+    (_match, keyQuote: string, key: string, separator: string, valueQuote: string) =>
+      `${keyQuote}${key}${keyQuote}${separator}${valueQuote}[REDACTED]${valueQuote}`
+  );
 };
 
 const sanitizeValue = (value: unknown, config: SanitizeConfig): unknown => {
@@ -86,6 +108,10 @@ const sanitizeValue = (value: unknown, config: SanitizeConfig): unknown => {
 
     if (config.removeEmails) {
       sanitized = sanitized.replace(EMAIL_PATTERN, '[REDACTED_EMAIL]');
+    }
+
+    if (config.maskSensitiveValues) {
+      sanitized = redactInlineSecrets(sanitized);
     }
 
     return sanitized;

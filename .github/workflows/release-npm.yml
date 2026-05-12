@@ -121,7 +121,7 @@ jobs:
               'npm',
               [
                 'view',
-                `mcp-transport-firewall@${version}`,
+                `toolwall@${version}`,
                 'version',
                 'repository',
                 'homepage',

@@ -21,7 +21,7 @@ const readPackageManifest = (): PackageManifest => {
 };
 
 const manifest = readPackageManifest();
-const packageName = manifest.name ?? 'mcp-transport-firewall';
+const packageName = manifest.name ?? 'toolwall';
 const packageVersion = manifest.version ?? '0.0.0';
 
 const adminEnabled = (): boolean => {
@@ -41,7 +41,7 @@ export const startEmbeddedMcpServer = async (): Promise<void> => {
   server.registerTool(
     'firewall_status',
     {
-      description: 'Return runtime status for the bundled standalone MCP server exposed by mcp-transport-firewall.',
+      description: 'Return runtime status for the bundled standalone MCP server exposed by toolwall.',
     },
     async () => {
       const status = {
@@ -82,9 +82,9 @@ export const startEmbeddedMcpServer = async (): Promise<void> => {
     },
     async () => {
       const usage = {
-        standaloneCommand: 'npx mcp-transport-firewall',
+        standaloneCommand: 'npx toolwall',
         proxyMode: {
-          command: 'npx mcp-transport-firewall',
+          command: 'npx toolwall',
           env: [
             'PROXY_AUTH_TOKEN',
             'MCP_TARGET_COMMAND',
@@ -99,10 +99,10 @@ export const startEmbeddedMcpServer = async (): Promise<void> => {
         content: createTextContent(
           [
             'Standalone mode:',
-            '  npx mcp-transport-firewall',
+            '  npx toolwall',
             '',
             'Protected downstream proxy mode:',
-            '  command: npx mcp-transport-firewall',
+            '  command: npx toolwall',
             '  env: PROXY_AUTH_TOKEN + one of MCP_TARGET_COMMAND/MCP_TARGET',
           ].join('\n'),
         ),

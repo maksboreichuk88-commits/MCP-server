@@ -1,0 +1,78 @@
+TASK NAME:
+- Day 1: lock pack-smoke harness ownership
+
+REPO ROOT:
+- C:\Users\777\OneDrive\Desktop\Calculator\GITMCP\toolwall
+
+CURRENT PRODUCT DIRECTION:
+- display/product name: Toolwall
+- technical/package/install identity: toolwall
+- flagship workflow: one local filesystem/search MCP workflow over stdio
+- scope rule: do not broaden into a generic MCP platform or control-plane-first story
+
+TRUTH DISCIPLINE:
+- treat live checked-out repo state as authoritative
+- separate public/current from local-only
+- do not assume old reports are still current without re-reading the live tree
+- do not overclaim security beyond the current pattern/policy-based protection posture
+
+DAY GOAL:
+- resolve the ownership and role of scripts/pack-smoke.mjs on the current checked-out tree and lock that role into the new execution system
+
+INSPECT FIRST:
+1. package.json
+2. scripts/pack-smoke.mjs
+3. docs/CURRENT_STATE_GROUNDED.md
+4. docs/VERIFICATION_GUIDE.md
+5. docs/NEXT_BATCH_RECOMMENDATION.md
+6. codex-reports/2026-04-06__resolve-pack-smoke-harness-ownership-and-role.md
+7. toolwall-execution-system/PROJECT_DEEP_AUDIT.md
+8. toolwall-execution-system/DAY_01.md
+
+MANDATORY LIVE AUDIT:
+- git rev-parse --show-toplevel
+- git status --short --branch
+- git branch --show-current
+- git log --oneline --decorate -n 20
+- git diff --stat origin/main..HEAD
+
+IN SCOPE:
+- confirm what pack-smoke actually verifies
+- confirm whether it is runtime logic or verification-layer code
+- confirm how it is wired into package metadata and verification docs
+- fix only direct contradictions if they still exist
+- update the new execution-system status truthfully
+- update canonical repo-local reporting
+
+OUT OF SCOPE:
+- broad runtime hardening
+- README work
+- launch texts
+- package rename
+- new feature work
+
+REQUIRED ACTIONS:
+- inspect the current script and its references
+- state the exact Day 1 decision in grounded terms
+- if no contradiction remains, do not invent work just to create churn
+- if a contradiction remains, resolve it narrowly
+
+REQUIRED VERIFICATION:
+- git diff --check
+- if scripts/pack-smoke.mjs or its direct contract wording changes:
+  - npm run typecheck
+  - npm run pack:dry-run
+  - npm run pack:smoke
+
+REPORTING:
+- update toolwall-execution-system/PROGRAM_STATUS.md
+- write/update the canonical repo-local report trail
+- sync codex-reports/INDEX.md and codex-reports/latest.md
+
+FINAL OUTPUT:
+1. current state
+2. what pack-smoke actually is
+3. what changed
+4. verification
+5. day result
+6. next required day

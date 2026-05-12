@@ -1,6 +1,7 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
-import { execSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
@@ -10,89 +11,171 @@ const currentDirPath = path.dirname(currentFilePath);
 const repoRoot = path.resolve(currentDirPath, '..');
 const packageJsonPath = path.join(repoRoot, 'package.json');
 const demoTargetPath = path.join(repoRoot, 'examples', 'demo-target.js');
-const npxCommand = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+const npmCliPath = path.join(path.dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js');
+const npxCliPath = path.join(path.dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npx-cli.js');
+const publishedCliName = 'toolwall';
+const tempPackDirPath = fs.mkdtempSync(path.join(os.tmpdir(), 'mcp-pack-smoke-'));
+const npmInvocation = process.platform === 'win32'
+  ? {
+      command: process.execPath,
+      prefixArgs: [npmCliPath],
+    }
+  : {
+      command: 'npm',
+      prefixArgs: [],
+    };
+const npxInvocation = process.platform === 'win32'
+  ? {
+      command: process.execPath,
+      prefixArgs: [npxCliPath],
+    }
+  : {
+      command: 'npx',
+      prefixArgs: [],
+    };
 
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-const cliName = packageJson.bin?.['mcp-transport-firewall'];
+const cliPath = packageJson.bin?.[publishedCliName];
 
-if (typeof cliName !== 'string') {
-  console.error('Missing mcp-transport-firewall bin entry in package.json.');
-  process.exit(1);
+if (typeof cliPath !== 'string') {
+  throw new Error(`Missing ${publishedCliName} bin entry in package.json.`);
 }
 
-const packOutput = execSync('npm pack --json', {
-  cwd: repoRoot,
-  encoding: 'utf8',
-});
+const formatFailure = (label, command, args, stdout, stderr, message) => {
+  const renderedCommand = [command, ...args].join(' ');
+  const sections = [`${label} failed.`, `Command: ${renderedCommand}`];
 
-let tarballName;
-
-try {
-  const parsed = JSON.parse(packOutput);
-  tarballName = parsed?.[0]?.filename;
-} catch (error) {
-  console.error('Failed to parse npm pack output.');
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
-}
-
-if (typeof tarballName !== 'string' || tarballName.length === 0) {
-  console.error('npm pack did not return a tarball filename.');
-  process.exit(1);
-}
-
-const tarballPath = path.join(repoRoot, tarballName);
-const quoteArg = (value) => {
-  if (process.platform === 'win32') {
-    return `"${value.replace(/"/g, '""')}"`;
+  if (message) {
+    sections.push(`Reason: ${message}`);
   }
-  return `'${value.replace(/'/g, `'\\''`)}'`;
+
+  if (stdout) {
+    sections.push(`stdout:\n${stdout}`);
+  }
+
+  if (stderr) {
+    sections.push(`stderr:\n${stderr}`);
+  }
+
+  return sections.join('\n');
 };
 
-const ensureSuccess = (label, args, env = {}, matcher) => {
+const runCommand = (label, invocation, args, env = {}) => {
   let stdout = '';
   let stderr = '';
 
   try {
-    const command = [npxCommand, ...args.map((arg) => quoteArg(arg))].join(' ');
-    stdout = execSync(command, {
-      cwd: repoRoot,
-      env: {
-        ...process.env,
-        ...env,
-      },
-      encoding: 'utf8',
-      timeout: 120000,
-    });
-  } catch (error) {
-    console.error(`${label} failed.`);
-    if (error && typeof error === 'object') {
-      const childError = error;
-      stdout = typeof childError.stdout === 'string' ? childError.stdout : stdout;
-      stderr = typeof childError.stderr === 'string' ? childError.stderr : stderr;
-      if (typeof childError.message === 'string') {
-        console.error(childError.message);
+    const result = spawnSync(
+      invocation.command,
+      [...invocation.prefixArgs, ...args],
+      {
+        cwd: repoRoot,
+        env: {
+          ...process.env,
+          ...env,
+        },
+        encoding: 'utf8',
+        timeout: 120000,
       }
-    } else {
-      console.error(String(error));
+    );
+    stdout = result.stdout ?? '';
+    stderr = result.stderr ?? '';
+
+    if (result.error) {
+      throw result.error;
     }
-    if (stdout) console.error(stdout);
-    if (stderr) console.error(stderr);
-    process.exit(1);
+
+    if (typeof result.status === 'number' && result.status !== 0) {
+      const error = new Error(`Command failed with exit code ${result.status}`);
+      error.stdout = stdout;
+      error.stderr = stderr;
+      throw error;
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (error && typeof error === 'object') {
+      stdout = typeof error.stdout === 'string' ? error.stdout : stdout;
+      stderr = typeof error.stderr === 'string' ? error.stderr : stderr;
+    }
+    throw new Error(
+      formatFailure(label, invocation.command, [...invocation.prefixArgs, ...args], stdout, stderr, message),
+    );
   }
 
+  return { stdout, stderr };
+};
+
+const ensureSuccess = (label, args, env = {}, matcher) => {
+  const { stdout, stderr } = runCommand(label, npxInvocation, args, env);
+
   if (matcher && !matcher(stdout, stderr)) {
-    console.error(`${label} succeeded but output did not match expectations.`);
-    if (stdout) console.error(stdout);
-    if (stderr) console.error(stderr);
-    process.exit(1);
+    throw new Error(
+      formatFailure(
+        `${label} output assertion`,
+        npxInvocation.command,
+        [...npxInvocation.prefixArgs, ...args],
+        stdout,
+        stderr,
+        'command succeeded but output did not match expectations',
+      ),
+    );
   }
+};
+
+const createPackedTarball = () => {
+  // Pack into a unique temp directory so Windows does not reuse a stale repo-root tarball path between runs.
+  const { stdout, stderr } = runCommand(
+    'npm pack --json',
+    npmInvocation,
+    ['pack', '--json', '--pack-destination', tempPackDirPath],
+  );
+
+  let tarballName;
+
+  try {
+    const parsed = JSON.parse(stdout);
+    tarballName = parsed?.[0]?.filename;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      formatFailure('npm pack JSON parse', npmInvocation.command, [...npmInvocation.prefixArgs, 'pack', '--json', '--pack-destination', tempPackDirPath], stdout, stderr, message),
+    );
+  }
+
+  if (typeof tarballName !== 'string' || tarballName.length === 0) {
+    throw new Error(
+      formatFailure(
+        'npm pack output validation',
+        npmInvocation.command,
+        [...npmInvocation.prefixArgs, 'pack', '--json', '--pack-destination', tempPackDirPath],
+        stdout,
+        stderr,
+        'npm pack did not return a tarball filename',
+      ),
+    );
+  }
+
+  const tarballPath = path.join(tempPackDirPath, tarballName);
+  if (!fs.existsSync(tarballPath)) {
+    throw new Error(
+      formatFailure(
+        'tarball existence check',
+        npmInvocation.command,
+        [...npmInvocation.prefixArgs, 'pack', '--json', '--pack-destination', tempPackDirPath],
+        stdout,
+        stderr,
+        `expected tarball was not found at ${tarballPath}`,
+      ),
+    );
+  }
+
+  return { tarballName, tarballPath };
 };
 
 const ensureStandaloneMcpServer = async (tarballPath) => {
   const transport = new StdioClientTransport({
-    command: npxCommand,
-    args: ['--yes', `--package=${tarballPath}`, 'mcp-transport-firewall'],
+    command: npxInvocation.command,
+    args: [...npxInvocation.prefixArgs, '--yes', `--package=${tarballPath}`, publishedCliName],
     cwd: repoRoot,
     env: {
       ...process.env,
@@ -129,17 +212,19 @@ const ensureStandaloneMcpServer = async (tarballPath) => {
   }
 };
 
-try {
+const main = async () => {
+  const { tarballName, tarballPath } = createPackedTarball();
+
   ensureSuccess(
     'tarball help smoke test',
-    ['--yes', `--package=${tarballPath}`, 'mcp-transport-firewall', '--help'],
+    ['--yes', `--package=${tarballPath}`, publishedCliName, '--help'],
     {},
-    (stdout) => stdout.includes('MCP Transport Firewall') && stdout.includes('Usage:'),
+    (stdout) => stdout.includes('Toolwall') && stdout.includes('Usage:'),
   );
 
   ensureSuccess(
     'env-based target resolution smoke test',
-    ['--yes', `--package=${tarballPath}`, 'mcp-transport-firewall'],
+    ['--yes', `--package=${tarballPath}`, publishedCliName],
     {
       PROXY_AUTH_TOKEN: '12345678901234567890123456789012',
       MCP_TARGET_COMMAND: process.execPath,
@@ -151,6 +236,13 @@ try {
   await ensureStandaloneMcpServer(tarballPath);
 
   console.log(`package smoke passed for ${tarballName}`);
+};
+
+try {
+  await main();
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
 } finally {
-  fs.rmSync(tarballPath, { force: true });
+  fs.rmSync(tempPackDirPath, { recursive: true, force: true });
 }

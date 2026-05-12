@@ -38,9 +38,9 @@ This includes indirect prompt-injection traffic only to the extent that it appea
 | `nhi-auth-validator` | Is the caller carrying the expected shared secret and declared scopes? | deny request |
 | `scope-validator` | Is the requested tool inside the declared scope set? | deny request |
 | `color-boundary` | Does the request mix incompatible trust domains or flip an established session color? | deny request |
+| `ast-egress-filter` | Do request strings match exfiltration, sensitive-path, shell-injection, or epistemic-risk markers? | deny request |
 | `preflight-validator` | Does an explicit or default high-trust action carry a valid one-time preflight ID? | deny request |
 | `schema-validator` | Do registered tool arguments match a strict contract? | deny request |
-| `ast-egress-filter` | Do request strings match exfiltration, sensitive-path, shell-injection, or epistemic-risk markers? | deny request |
 
 All gates fail closed. If validation cannot be completed, the request is rejected instead of forwarded.
 
@@ -54,16 +54,21 @@ All gates fail closed. If validation cannot be completed, the request is rejecte
 | ShadowLeak-style URL exfiltration, including repeated short chunks under one query key | `ast-egress-filter` | `tests/ast-egress-filter.test.ts`, `tests/cli.test.ts`, `examples/evidence-corpus.json` |
 | sensitive-path access markers | `ast-egress-filter` | `tests/ast-egress-filter.test.ts`, `examples/evidence-corpus.json` |
 | shell-injection markers in tool arguments | `ast-egress-filter` | `tests/ast-egress-filter.test.ts`, `examples/evidence-corpus.json` |
-| unsafe response material flowing back to the caller | response sanitization | `src/proxy/shadow-leak-sanitizer.ts`, `tests/app.test.ts` |
+| unsafe response material flowing back to the caller | response sanitization, including narrow bearer-header and inline secret-assignment redaction in downstream strings | `src/proxy/shadow-leak-sanitizer.ts` |
 
 The strict registry currently covers these contract families and aliases:
 
 - file reads: `read_file`, `read`, `open_file`
+- multi-file reads: `read_multiple_files`, `read_files`
 - file writes and creation: `write_file`, `write`, `create_file`
+- file info: `get_file_info`
 - directory enumeration: `list_directory`, `list_files`
+- directory tree: `directory_tree`
+- allowed-directory discovery: `list_allowed_directories`
 - content search: `search_files`, `search`
 - command execution: `execute_command`, `execute`
 - network fetch: `fetch_url`
+- bundled embedded status tools: `firewall_status`, `firewall_usage`
 
 These names are the contracts enforced by this repository. They are not presented as a universal MCP standard.
 
@@ -71,7 +76,7 @@ What the repo currently demonstrates:
 
 - blocked requests do not reach the downstream stdio target in the reproducible demo path
 - allowed read-style tool calls can be served from cache
-- downstream responses are sanitized before returning to the caller
+- downstream responses are sanitized before returning to the caller, with current response-side protection covering sensitive keyed fields plus narrow plain-text bearer-header and inline secret-assignment redaction
 - the control plane exposes route, cache, preflight, circuit-breaker, blocked-request, and Prometheus-formatted metrics
 
 What it does not claim:

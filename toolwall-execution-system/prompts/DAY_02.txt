@@ -1,0 +1,59 @@
+TASK NAME:
+- Day 2: consolidate one coherent local boundary
+
+REPO ROOT:
+- C:\Users\777\OneDrive\Desktop\Calculator\GITMCP\toolwall
+
+CURRENT PRODUCT DIRECTION:
+- Toolwall is one useful security/tooling product
+- flagship workflow remains one local filesystem/search MCP workflow over stdio
+- toolwall remains the install/package truth
+
+TRUTH DISCIPLINE:
+- re-read the live dirty tree before acting
+- do not inherit stale deferred-file assumptions
+- keep reporting-only files separate from product/runtime boundary files
+
+DAY GOAL:
+- classify the current working tree into one explicit local boundary that later days can safely inherit
+
+INSPECT FIRST:
+1. git status --short --branch
+2. docs/CURRENT_STATE_GROUNDED.md
+3. docs/NEXT_BATCH_RECOMMENDATION.md
+4. scripts/pack-smoke.mjs
+5. scripts/stdio-demo.mjs
+6. toolwall-execution-system/DAY_02.md
+
+MANDATORY LIVE AUDIT:
+- git rev-parse --show-toplevel
+- git status --short --branch
+- git branch --show-current
+- git log --oneline --decorate -n 20
+- git diff --stat origin/main..HEAD
+
+IN SCOPE:
+- group dirty files by runtime/test/docs/reporting
+- decide which files belong inside the active local boundary
+- remove silent ambiguity from the program state
+
+OUT OF SCOPE:
+- new runtime behavior
+- README/quickstart work
+- launch prep
+
+REQUIRED VERIFICATION:
+- git diff --check
+- rerun only targeted commands if you change a runtime-facing proof statement materially
+
+REPORTING:
+- update PROGRAM_STATUS
+- sync canonical repo-local report files
+
+FINAL OUTPUT:
+1. live dirty tree
+2. boundary decision
+3. what changed
+4. verification
+5. day result
+6. next required day

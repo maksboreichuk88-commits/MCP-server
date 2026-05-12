@@ -23,7 +23,7 @@ Early operator offer:
 How to request help:
 
 1. Read the operator guide: [WORKFLOW_HARDENING.md](WORKFLOW_HARDENING.md)
-2. Open the guided setup request directly: [guided setup request](https://github.com/shleder/mcp-transport-firewall/issues/new?template=guided-setup-request.yml)
+2. Open the guided setup request directly: [guided setup request](https://github.com/shleder/toolwall/issues/new?template=guided-setup-request.yml)
 3. Include sanitized details about:
    - your MCP client (`Codex`, `Claude Code`, or similar)
    - the downstream MCP server you want to protect

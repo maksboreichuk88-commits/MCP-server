@@ -39,7 +39,7 @@ EXPOSE 9090
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "dist/index.js"]
 
-LABEL org.opencontainers.image.title="MCP Transport Firewall" \
+LABEL org.opencontainers.image.title="Toolwall" \
       org.opencontainers.image.description="Fail-closed stdio firewall for MCP tool traffic with an HTTP review harness" \
-      org.opencontainers.image.source="https://github.com/shleder/mcp-transport-firewall" \
+      org.opencontainers.image.source="https://github.com/shleder/toolwall" \
       org.opencontainers.image.licenses="MIT"

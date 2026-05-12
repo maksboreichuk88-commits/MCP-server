@@ -12,15 +12,51 @@ import {
 describe('release guardrails', () => {
   it('accepts expected package metadata', () => {
     const mismatches = validatePackageMetadata({
-      name: 'mcp-transport-firewall',
+      name: 'toolwall',
       main: 'dist/lib.js',
       exports: {
         '.': './dist/lib.js',
         './package.json': './package.json',
       },
       files: [
-        'dist',
-        'docs',
+        'dist/admin/index.js',
+        'dist/cache/index.js',
+        'dist/cache/l1-cache.js',
+        'dist/cache/l2-cache.js',
+        'dist/cli-options.js',
+        'dist/cli.js',
+        'dist/embedded/server.js',
+        'dist/errors.js',
+        'dist/lib.js',
+        'dist/mcp-tool-schemas.js',
+        'dist/metrics/prometheus.js',
+        'dist/middleware/ast-egress-filter.js',
+        'dist/middleware/color-boundary.js',
+        'dist/middleware/nhi-auth-validator.js',
+        'dist/middleware/preflight-validator.js',
+        'dist/middleware/rate-limiter.js',
+        'dist/middleware/schema-validator.js',
+        'dist/middleware/scope-validator.js',
+        'dist/proxy/circuit-breaker.js',
+        'dist/proxy/router.js',
+        'dist/proxy/shadow-leak-sanitizer.js',
+        'dist/proxy/types.js',
+        'dist/runtime-config.js',
+        'dist/stdio/proxy.js',
+        'dist/utils/auditLogger.js',
+        'dist/utils/mcp-request.js',
+        'docs/CLIENT_CONFIG_EXAMPLES.md',
+        'docs/DEMO_RUN_TRANSCRIPT.md',
+        'docs/EVIDENCE_BUNDLE.md',
+        'docs/GUIDED_SETUP_AND_AUDITS.md',
+        'docs/LIMITS_AND_NON_GOALS.md',
+        'docs/PROXY_SETUP.md',
+        'docs/QUICKSTART.md',
+        'docs/RISK_MODEL.md',
+        'docs/RISK_SUMMARY.md',
+        'docs/RUNTIME_CONTRACT.md',
+        'docs/VERIFICATION_GUIDE.md',
+        'docs/WORKFLOW_HARDENING.md',
         '.env.example',
         'LICENSE',
         'README.md',
@@ -29,15 +65,15 @@ describe('release guardrails', () => {
         'SUPPORT.md',
       ],
       bin: {
-        'mcp-transport-firewall': 'dist/cli.js',
+        'toolwall': 'dist/cli.js',
       },
       repository: {
         type: 'git',
-        url: 'git+https://github.com/shleder/mcp-transport-firewall.git',
+        url: 'git+https://github.com/shleder/toolwall.git',
       },
-      homepage: 'https://github.com/shleder/mcp-transport-firewall#readme',
+      homepage: 'https://github.com/shleder/toolwall#readme',
       bugs: {
-        url: 'https://github.com/shleder/mcp-transport-firewall/issues',
+        url: 'https://github.com/shleder/toolwall/issues',
       },
       publishConfig: {
         access: 'public',
@@ -55,25 +91,26 @@ describe('release guardrails', () => {
 
   it('rejects package metadata when the packaging and install contract drifts', () => {
     const mismatches = validatePackageMetadata({
-      name: 'mcp-transport-firewall',
+      name: 'toolwall',
       main: 'dist/index.js',
       exports: {
         '.': './dist/index.js',
       },
       files: [
         'dist',
+        'docs/STDIO_BENCHMARK_GUIDE.md',
         'README.md',
       ],
       bin: {
-        'mcp-transport-firewall': 'dist/index.js',
+        'toolwall': 'dist/index.js',
       },
       repository: {
         type: 'git',
-        url: 'git+https://github.com/shleder/mcp-transport-firewall.git',
+        url: 'git+https://github.com/shleder/toolwall.git',
       },
-      homepage: 'https://github.com/shleder/mcp-transport-firewall#readme',
+      homepage: 'https://github.com/shleder/toolwall#readme',
       bugs: {
-        url: 'https://github.com/shleder/mcp-transport-firewall/issues',
+        url: 'https://github.com/shleder/toolwall/issues',
       },
       publishConfig: {
         access: 'public',
@@ -87,10 +124,15 @@ describe('release guardrails', () => {
     expect(mismatches).toEqual(expect.arrayContaining([
       'main must be dist/lib.js, got dist/index.js',
       'exports["."] must be ./dist/lib.js, got ./dist/index.js',
-      'bin.mcp-transport-firewall must be dist/cli.js, got dist/index.js',
+      'bin.toolwall must be dist/cli.js, got dist/index.js',
       'engines.node must be >=20.0.0, got >=18.0.0',
       'scripts.prepare must be npm run build, got undefined',
-      'files must include docs',
+      'files must not include unexpected entry dist',
+      'files must not include unexpected entry docs/STDIO_BENCHMARK_GUIDE.md',
+      'files must not include dist',
+      'files must not include docs/STDIO_BENCHMARK_GUIDE.md',
+      'files must include docs/CLIENT_CONFIG_EXAMPLES.md',
+      'files must include docs/QUICKSTART.md',
       'files must include .env.example',
       'files must include LICENSE',
       'files must include CHANGELOG.md',
@@ -101,14 +143,14 @@ describe('release guardrails', () => {
 
   it('rejects package metadata that points to a different homepage', () => {
     const mismatches = validatePackageMetadata({
-      name: 'mcp-transport-firewall',
+      name: 'toolwall',
       repository: {
         type: 'git',
-        url: 'git+https://github.com/shleder/mcp-transport-firewall.git',
+        url: 'git+https://github.com/shleder/toolwall.git',
       },
       homepage: 'https://example.com/wrong-homepage',
       bugs: {
-        url: 'https://github.com/shleder/mcp-transport-firewall/issues',
+        url: 'https://github.com/shleder/toolwall/issues',
       },
       publishConfig: {
         access: 'public',
@@ -121,14 +163,14 @@ describe('release guardrails', () => {
   it('accepts registry metadata when repo identity and gitHead match', () => {
     const result = verifyRegistryMetadata({
       pkg: {
-        name: 'mcp-transport-firewall',
+        name: 'toolwall',
         version: '2.2.3',
         repository: {
-          url: 'git+https://github.com/shleder/mcp-transport-firewall.git',
+          url: 'git+https://github.com/shleder/toolwall.git',
         },
-        homepage: 'https://github.com/shleder/mcp-transport-firewall#readme',
+        homepage: 'https://github.com/shleder/toolwall#readme',
         bugs: {
-          url: 'https://github.com/shleder/mcp-transport-firewall/issues',
+          url: 'https://github.com/shleder/toolwall/issues',
         },
       },
       env: {
@@ -138,11 +180,11 @@ describe('release guardrails', () => {
       registryMetadata: {
         version: '2.2.3',
         repository: {
-          url: 'git+https://github.com/shleder/mcp-transport-firewall.git',
+          url: 'git+https://github.com/shleder/toolwall.git',
         },
-        homepage: 'https://github.com/shleder/mcp-transport-firewall#readme',
+        homepage: 'https://github.com/shleder/toolwall#readme',
         bugs: {
-          url: 'https://github.com/shleder/mcp-transport-firewall/issues',
+          url: 'https://github.com/shleder/toolwall/issues',
         },
         gitHead: 'abc123',
       },
@@ -154,14 +196,14 @@ describe('release guardrails', () => {
   it('rejects registry metadata with a mismatched gitHead', () => {
     const result = verifyRegistryMetadata({
       pkg: {
-        name: 'mcp-transport-firewall',
+        name: 'toolwall',
         version: '2.2.3',
         repository: {
-          url: 'git+https://github.com/shleder/mcp-transport-firewall.git',
+          url: 'git+https://github.com/shleder/toolwall.git',
         },
-        homepage: 'https://github.com/shleder/mcp-transport-firewall#readme',
+        homepage: 'https://github.com/shleder/toolwall#readme',
         bugs: {
-          url: 'https://github.com/shleder/mcp-transport-firewall/issues',
+          url: 'https://github.com/shleder/toolwall/issues',
         },
       },
       env: {
@@ -171,11 +213,11 @@ describe('release guardrails', () => {
       registryMetadata: {
         version: '2.2.3',
         repository: {
-          url: 'git+https://github.com/shleder/mcp-transport-firewall.git',
+          url: 'git+https://github.com/shleder/toolwall.git',
         },
-        homepage: 'https://github.com/shleder/mcp-transport-firewall#readme',
+        homepage: 'https://github.com/shleder/toolwall#readme',
         bugs: {
-          url: 'https://github.com/shleder/mcp-transport-firewall/issues',
+          url: 'https://github.com/shleder/toolwall/issues',
         },
         gitHead: 'def456',
       },
@@ -191,11 +233,11 @@ describe('release guardrails', () => {
       },
       env: {
         GITHUB_REF_NAME: 'v2.2.5',
-        GITHUB_REPOSITORY: 'shleder/mcp-transport-firewall',
+        GITHUB_REPOSITORY: 'shleder/toolwall',
       },
       readGitFn: (...args: string[]) => {
         if (args[0] === 'config') {
-          return 'https://github.com/shleder/mcp-transport-firewall.git';
+          return 'https://github.com/shleder/toolwall.git';
         }
 
         return 'abc123';
@@ -203,7 +245,7 @@ describe('release guardrails', () => {
     });
 
     expect(result.expectedTag).toBe('v2.2.5');
-    expect(result.normalizedOriginRepository).toBe('shleder/mcp-transport-firewall');
+    expect(result.normalizedOriginRepository).toBe('shleder/toolwall');
     expect(result.mismatches).toEqual([]);
   });
 
@@ -214,11 +256,11 @@ describe('release guardrails', () => {
       },
       env: {
         GITHUB_REF_NAME: 'v2.2.5',
-        GITHUB_REPOSITORY: 'wrong-owner/mcp-transport-firewall',
+        GITHUB_REPOSITORY: 'wrong-owner/toolwall',
       },
       readGitFn: (...args: string[]) => {
         if (args[0] === 'config') {
-          return 'https://github.com/shleder/mcp-transport-firewall.git';
+          return 'https://github.com/shleder/toolwall.git';
         }
 
         return 'abc123';
@@ -235,18 +277,18 @@ describe('release guardrails', () => {
       },
       env: {
         GITHUB_REF_NAME: 'v2.2.5',
-        GITHUB_REPOSITORY: 'shleder/mcp-transport-firewall',
+        GITHUB_REPOSITORY: 'shleder/toolwall',
       },
       readGitFn: (...args: string[]) => {
         if (args[0] === 'config') {
-          return 'git@github.com:shleder/mcp-transport-firewall.git';
+          return 'git@github.com:shleder/toolwall.git';
         }
 
         return 'abc123';
       },
     });
 
-    expect(result.normalizedOriginRepository).toBe('shleder/mcp-transport-firewall');
+    expect(result.normalizedOriginRepository).toBe('shleder/toolwall');
     expect(result.mismatches).toEqual([]);
   });
 
@@ -257,11 +299,11 @@ describe('release guardrails', () => {
       },
       env: {
         GITHUB_REF_NAME: 'v2.2.5',
-        GITHUB_REPOSITORY: 'shleder/mcp-transport-firewall',
+        GITHUB_REPOSITORY: 'shleder/toolwall',
       },
       readGitFn: (...args: string[]) => {
         if (args[0] === 'config') {
-          return 'https://github.com/notshleder/mcp-transport-firewall.git';
+          return 'https://github.com/notshleder/toolwall.git';
         }
 
         return 'abc123';
@@ -269,7 +311,7 @@ describe('release guardrails', () => {
     });
 
     expect(result.mismatches).toContain(
-      'remote.origin.url must point to shleder/mcp-transport-firewall, got notshleder/mcp-transport-firewall via https://github.com/notshleder/mcp-transport-firewall.git'
+      'remote.origin.url must point to shleder/toolwall, got notshleder/toolwall via https://github.com/notshleder/toolwall.git'
     );
   });
 
@@ -280,11 +322,11 @@ describe('release guardrails', () => {
       },
       env: {
         GITHUB_REF_NAME: 'v2.2.5',
-        GITHUB_REPOSITORY: 'shleder/mcp-transport-firewall',
+        GITHUB_REPOSITORY: 'shleder/toolwall',
       },
       readGitFn: (...args: string[]) => {
         if (args[0] === 'config') {
-          return 'https://notgithub.com/shleder/mcp-transport-firewall.git';
+          return 'https://notgithub.com/shleder/toolwall.git';
         }
 
         return 'abc123';
@@ -293,7 +335,7 @@ describe('release guardrails', () => {
 
     expect(result.normalizedOriginRepository).toBeNull();
     expect(result.mismatches).toContain(
-      'remote.origin.url must point to shleder/mcp-transport-firewall, got https://notgithub.com/shleder/mcp-transport-firewall.git'
+      'remote.origin.url must point to shleder/toolwall, got https://notgithub.com/shleder/toolwall.git'
     );
   });
 
@@ -304,7 +346,7 @@ describe('release guardrails', () => {
       },
       env: {
         GITHUB_REF_NAME: 'v2.2.5',
-        GITHUB_REPOSITORY: 'shleder/mcp-transport-firewall',
+        GITHUB_REPOSITORY: 'shleder/toolwall',
       },
       readGitFn: (...args: string[]) => {
         if (args[0] === 'config') {
@@ -316,7 +358,7 @@ describe('release guardrails', () => {
     });
 
     expect(result.mismatches).toContain(
-      'remote.origin.url is not configured; expected shleder/mcp-transport-firewall'
+      'remote.origin.url is not configured; expected shleder/toolwall'
     );
   });
 });

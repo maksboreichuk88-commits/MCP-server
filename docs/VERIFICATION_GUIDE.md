@@ -1,6 +1,6 @@
 ## Verification Guide
 
-Updated: 2026-04-02
+Updated: 2026-04-06
 
 This repository is easiest to verify as a reproducible transport control, not as a polished product demo.
 
@@ -14,24 +14,34 @@ Use this when you want the smallest repo-local proof of the main workflow:
 
 That path proves one protected local filesystem/search-style workflow over `stdio`: safe `search_files` traffic reaches the downstream target, repeated allow traffic can be cached, and risky traffic is blocked before downstream execution.
 
-## Full verification flow
+## Current serial proof surface
+
+Use this when you want the checked-out local boundary that the repo currently relies on:
+
+1. run `npm run typecheck`
+2. run `npm run assert:package-metadata`
+3. run `npm test`
+4. run `npm run demo:stdio`
+5. run `npm run pack:dry-run`
+6. run `npm run pack:smoke`
+
+That is the current repo-grounded local proof surface.
+
+## Extended verification flow
 
 1. inspect the risk model in [RISK_MODEL.md](RISK_MODEL.md)
 2. inspect the local setup examples in [CLIENT_CONFIG_EXAMPLES.md](CLIENT_CONFIG_EXAMPLES.md)
 3. inspect the runtime guarantees in [RUNTIME_CONTRACT.md](RUNTIME_CONTRACT.md)
-4. run `npm run assert:package-metadata`
-5. run `npm test`
-6. run `npm run verify:all`
-7. run `npm run benchmark:stdio -- --json --output evidence.json`
-8. run `npm run pack:dry-run`
-9. run `npm run pack:smoke`
-10. inspect `/metrics` on the admin control plane when running the Docker path
-11. compare documented claims to tests, benchmark results, tarball behavior, and control-plane state
+4. run the current serial proof surface above
+5. run `npm run verify:all` when you want the broader repo/UI verification path
+6. run `npm run benchmark:stdio -- --json --output evidence.json` when deny/output behavior changed
+7. inspect `/metrics` on the admin control plane when running the Docker path
+8. compare documented claims to tests, benchmark results, tarball behavior, and control-plane state
 
 | Topic | Code | Evidence |
 |---|---|---|
 | stdio interception path | `src/cli.ts`, `src/stdio/proxy.ts` | `tests/cli.test.ts`, `scripts/stdio-demo.mjs` |
-| repeatable evidence corpus | `scripts/stdio-benchmark.mjs`, `examples/evidence-corpus.json` | `docs/STDIO_BENCHMARK_GUIDE.md` |
+| repeatable evidence corpus | `scripts/stdio-benchmark.mjs`, `examples/evidence-corpus.json` | rerun `npm run benchmark:stdio -- --json --output evidence.json` when evidence-facing behavior changes |
 | package install contract | `scripts/assert-package-metadata.mjs` | `tests/release-guardrails.test.ts` |
 | packaged downstream proxy proof | `scripts/pack-smoke.mjs` | `tests/package-proxy-smoke.test.ts` |
 | fail-closed auth | `src/middleware/nhi-auth-validator.ts` | `tests/nhi-auth.test.ts`, `tests/cli.test.ts` |
@@ -74,7 +84,7 @@ The artifact answers:
 - do blocked corpus cases fail with the expected denial code?
 - do allow corpus cases stay stable across repeats?
 - did a change alter cache consistency or increase false positives?
-- does the packaged CLI still expose the documented `mcp-transport-firewall` entry points?
+- does the packaged CLI still expose the documented `toolwall` entry points?
 
 What this repo currently demonstrates:
 
@@ -94,3 +104,8 @@ What it does not claim:
 - sandboxing of tool execution
 - post-execution rollback or containment
 - universal coverage for every possible MCP tool contract
+
+Truth note:
+
+- a green local verification run proves the checked-out local boundary only
+- it does not prove push, merge, tag, or publish

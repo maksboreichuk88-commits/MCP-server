@@ -1,8 +1,8 @@
 ## Client Config Examples
 
-`Toolwall` is the display name on the repo surface. The package and CLI name stay `mcp-transport-firewall`.
+The package and CLI name on this page are `toolwall`.
 
-Use this page when wiring `mcp-transport-firewall` into a local MCP setup.
+Use this page when wiring `toolwall` into a local MCP setup.
 The default path is the protected downstream proxy for one local filesystem/search-style workflow.
 The main fit is one protected local filesystem/search workflow over `stdio`.
 
@@ -15,7 +15,7 @@ Use this when you already have an MCP server and want the firewall in front of i
   "mcpServers": {
     "protected-local-tooling": {
       "command": "npx",
-      "args": ["-y", "mcp-transport-firewall"],
+      "args": ["-y", "toolwall"],
       "env": {
         "PROXY_AUTH_TOKEN": "replace-with-32-byte-secret",
         "MCP_TARGET_COMMAND": "node",
@@ -42,8 +42,8 @@ Use this when you want the smallest reproducible protected workflow backed by th
 ```powershell
 $env:PROXY_AUTH_TOKEN = "12345678901234567890123456789012"
 $env:MCP_TARGET_COMMAND = "node"
-$env:MCP_TARGET_ARGS_JSON = "[\"C:/absolute/path/to/mcp-transport-firewall/examples/demo-target.js\"]"
-npx --yes mcp-transport-firewall
+$env:MCP_TARGET_ARGS_JSON = "[\"C:/absolute/path/to/toolwall/examples/demo-target.js\"]"
+npx --yes toolwall
 ```
 
 Example request shape:
@@ -84,7 +84,7 @@ Use this when you want the packaged status and launch-guidance tools without con
   "mcpServers": {
     "transport-firewall": {
       "command": "npx",
-      "args": ["-y", "mcp-transport-firewall"]
+      "args": ["-y", "toolwall"]
     }
   }
 }
@@ -99,7 +99,7 @@ This path:
 ### Direct terminal and CLI flow
 
 ```bash
-npx --yes mcp-transport-firewall --help
-npx --yes mcp-transport-firewall
-npx --yes mcp-transport-firewall -- node C:/absolute/path/to/your-mcp-server.js
+npx --yes toolwall --help
+npx --yes toolwall
+npx --yes toolwall -- node C:/absolute/path/to/your-mcp-server.js
 ```

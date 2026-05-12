@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and the project follows semantic versioning.
 
+## 2.2.6 - 2026-04-07
+
+- cuts the first Toolwall release-candidate boundary as a dedicated `2.2.6` version instead of reusing the already-published `2.2.5` line
+- keeps `toolwall` as the intended first public package path and keeps unscoped publishability explicitly unproven until separate release-time proof exists
+- narrows the packaged doc surface to the explicit install, proof, and operator pages that belong in the first Toolwall tarball
+- updates the active truth layer and release checklist so the current release-prep story stays unscoped-only instead of presenting a live fallback package choice
+
 ## 2.2.5 - 2026-03-31
 
 - hardens runtime parsing for admin port, cache TTL, and downstream timeout environment variables so invalid values fail back to safe defaults
@@ -32,7 +39,7 @@ The format is based on Keep a Changelog and the project follows semantic version
 - 2.2.2 removes noisy cache-hit stderr output from the runtime path
 - 2.2.2 normalizes remaining compatibility and validation wording in public surfaces
 
-- 2.2.0 adds a bundled standalone MCP server so `npx mcp-transport-firewall` is useful without a separately installed downstream target
+- 2.2.0 adds a bundled standalone MCP server so the packaged CLI is useful without a separately installed downstream target
 - 2.2.0 preserves downstream proxy mode through `--target`, `MCP_TARGET_COMMAND`, and `MCP_TARGET`
 - 2.2.0 extends package smoke coverage to validate standalone MCP tool discovery and invocation from the packed tarball
 
@@ -43,7 +50,7 @@ The format is based on Keep a Changelog and the project follows semantic version
 - regression coverage that verifies the proxy kills the target after draining the last piped stdio response
 - Prometheus-formatted control-plane metrics exporter for blocked requests, cache state, routes, preflight, and circuit breakers
 - verification-oriented documentation for threat modeling, validation, and open-source distribution
-- npm package smoke test for the published `mcp-transport-firewall` CLI contract
+- npm package smoke test for the published pre-rename CLI contract
 - semver-tagged npm release workflow and dedicated package-smoke workflow definitions
 
 

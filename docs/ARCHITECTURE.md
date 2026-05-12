@@ -2,7 +2,7 @@ This diagram shows the primary transport boundary and the optional control-plane
 
 ```mermaid
 flowchart LR
-  Client["MCP client or agent runtime"] -->|JSON-RPC over stdio| Firewall["mcp-transport-firewall"]
+  Client["MCP client or agent runtime"] -->|JSON-RPC over stdio| Firewall["toolwall"]
   Firewall -->|validated tools/call traffic| Target["local or downstream MCP tool server"]
   Firewall -->|sanitized result or explicit denial| Client
   Firewall --> Metrics["/metrics and /stats"]

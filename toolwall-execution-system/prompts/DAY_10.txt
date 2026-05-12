@@ -1,0 +1,52 @@
+TASK NAME:
+- Day 10: assemble the launch-ready proof pack
+
+REPO ROOT:
+- C:\Users\777\OneDrive\Desktop\Calculator\GITMCP\toolwall
+
+CURRENT PRODUCT DIRECTION:
+- proof must stay centered on the one flagship stdio workflow
+
+TRUTH DISCIPLINE:
+- label local-only proof clearly
+- do not package public/current claims that are not proven
+
+DAY GOAL:
+- assemble the smallest strong proof pack for the launch-ready repo surface
+
+INSPECT FIRST:
+1. docs/EVIDENCE_BUNDLE.md
+2. docs/VERIFICATION_GUIDE.md
+3. docs/DEMO_RUN_TRANSCRIPT.md
+4. docs/STDIO_BENCHMARK_GUIDE.md
+5. docs/STDIO_BENCHMARK_SNAPSHOT.json
+6. toolwall-execution-system/DAY_10.md
+
+MANDATORY LIVE AUDIT:
+- git rev-parse --show-toplevel
+- git status --short --branch
+- git branch --show-current
+- git log --oneline --decorate -n 20
+- git diff --stat origin/main..HEAD
+
+IN SCOPE:
+- proof-pack structure and entry points
+
+OUT OF SCOPE:
+- new runtime scope
+- benchmark redesign
+
+REQUIRED VERIFICATION:
+- git diff --check
+- rerun only directly referenced proof commands if their story changes
+
+REPORTING:
+- update PROGRAM_STATUS
+- sync repo-local report files
+
+FINAL OUTPUT:
+1. proof pack shape
+2. what changed
+3. verification
+4. day result
+5. next required day

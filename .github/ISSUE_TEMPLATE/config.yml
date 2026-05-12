@@ -1,14 +1,20 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Guided setup request
-    url: https://github.com/shleder/mcp-transport-firewall/issues/new?template=guided-setup-request.yml
-    about: Ask for help protecting a real Codex or Claude Code MCP workflow.
+  - name: Quickstart
+    url: https://github.com/shleder/toolwall/blob/main/docs/QUICKSTART.md
+    about: Use the shortest local proof path before opening a support or bug issue.
+  - name: Proof pack
+    url: https://github.com/shleder/toolwall/blob/main/docs/EVIDENCE_BUNDLE.md
+    about: Review the compact proof surface, verification map, and explicit limits.
+  - name: Workflow intake request
+    url: https://github.com/shleder/toolwall/issues/new?template=guided-setup-request.yml
+    about: Ask for help hardening one real local MCP workflow after the quickstart/proof path.
   - name: Security reporting policy
-    url: https://github.com/shleder/mcp-transport-firewall/blob/main/SECURITY.md
+    url: https://github.com/shleder/toolwall/blob/main/SECURITY.md
     about: Follow the security policy for sensitive findings instead of posting exploit details publicly.
-  - name: Guided setup and audits
-    url: https://github.com/shleder/mcp-transport-firewall/blob/main/docs/GUIDED_SETUP_AND_AUDITS.md
-    about: Use the guided setup path if you want help hardening a real Codex or Claude Code local MCP workflow.
+  - name: Workflow setup and audits
+    url: https://github.com/shleder/toolwall/blob/main/docs/GUIDED_SETUP_AND_AUDITS.md
+    about: Review the workflow setup/help surface for one real local MCP workflow before opening an intake request.
   - name: Workflow hardening guide
-    url: https://github.com/shleder/mcp-transport-firewall/blob/main/docs/WORKFLOW_HARDENING.md
+    url: https://github.com/shleder/toolwall/blob/main/docs/WORKFLOW_HARDENING.md
     about: Start with the operator guide for risky local MCP calls, auth gaps, and fail-closed rollout.

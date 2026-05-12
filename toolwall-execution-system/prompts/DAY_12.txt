@@ -1,0 +1,52 @@
+TASK NAME:
+- Day 12: prepare launch texts
+
+REPO ROOT:
+- C:\Users\777\OneDrive\Desktop\Calculator\GITMCP\toolwall
+
+CURRENT PRODUCT DIRECTION:
+- launch messaging must stay narrow, proof-first, and honest
+
+TRUTH DISCIPLINE:
+- do not claim merge/tag/publish/release proof unless separately confirmed
+- do not oversell security guarantees
+
+DAY GOAL:
+- prepare reusable launch texts grounded in the current launch-ready proof surface
+
+INSPECT FIRST:
+1. README.md
+2. proof-pack surface
+3. docs/LIMITS_AND_NON_GOALS.md
+4. docs/CURRENT_STATE_GROUNDED.md
+5. toolwall-execution-system/DAY_12.md
+
+MANDATORY LIVE AUDIT:
+- git rev-parse --show-toplevel
+- git status --short --branch
+- git branch --show-current
+- git log --oneline --decorate -n 20
+- git diff --stat origin/main..HEAD
+
+IN SCOPE:
+- launch copy
+- short positioning text
+- proof-first announcement text
+
+OUT OF SCOPE:
+- actual launch execution
+- publishing
+
+REQUIRED VERIFICATION:
+- git diff --check
+
+REPORTING:
+- update PROGRAM_STATUS
+- sync repo-local report files
+
+FINAL OUTPUT:
+1. launch texts
+2. what changed
+3. verification
+4. day result
+5. next required day
