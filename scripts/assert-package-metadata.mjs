@@ -8,7 +8,7 @@ const repoRoot = path.resolve(currentDirPath, '..');
 const packageJsonPath = path.join(repoRoot, 'package.json');
 
 const expectedMetadata = {
-  name: 'toolwall',
+  name: '@maksiph14/toolwall',
   main: 'dist/lib.js',
   exportRoot: './dist/lib.js',
   exportPackageJson: './package.json',
@@ -28,11 +28,13 @@ const expectedMetadata = {
     'dist/cli.js',
     'dist/embedded/server.js',
     'dist/errors.js',
+    'dist/gateway-config.js',
     'dist/lib.js',
     'dist/mcp-tool-schemas.js',
     'dist/metrics/prometheus.js',
     'dist/middleware/ast-egress-filter.js',
     'dist/middleware/color-boundary.js',
+    'dist/middleware/error-handler.js',
     'dist/middleware/nhi-auth-validator.js',
     'dist/middleware/preflight-validator.js',
     'dist/middleware/rate-limiter.js',

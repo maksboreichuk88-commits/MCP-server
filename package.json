@@ -1,6 +1,6 @@
 {
-  "name": "toolwall",
-  "version": "2.2.6",
+  "name": "@maksiph14/toolwall",
+  "version": "2.2.7",
   "description": "Fail-closed stdio firewall for risky local MCP JSON-RPC tool calls",
   "main": "dist/lib.js",
   "exports": {
@@ -16,11 +16,13 @@
     "dist/cli.js",
     "dist/embedded/server.js",
     "dist/errors.js",
+    "dist/gateway-config.js",
     "dist/lib.js",
     "dist/mcp-tool-schemas.js",
     "dist/metrics/prometheus.js",
     "dist/middleware/ast-egress-filter.js",
     "dist/middleware/color-boundary.js",
+    "dist/middleware/error-handler.js",
     "dist/middleware/nhi-auth-validator.js",
     "dist/middleware/preflight-validator.js",
     "dist/middleware/rate-limiter.js",

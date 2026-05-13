@@ -10,10 +10,6 @@ export interface CircuitBreakerStats {
   name: string;
   state: 'CLOSED' | 'OPEN' | 'HALF_OPEN';
   failures: number;
-  successes: number;
-  lastFailure: number | null;
-  lastSuccess: number | null;
-  totalCalls: number;
 }
 
 export interface PreflightStats {
@@ -38,6 +34,8 @@ export interface BlockedRequestSample {
   reason?: string;
   ip?: string;
   path?: string;
+  tool?: string;
+  snippet?: string;
 }
 
 export interface BlockedRequestMetrics {
@@ -54,14 +52,46 @@ export interface RouteConfig {
   headers?: Record<string, string>;
 }
 
-export interface ProxyStats {
+export interface ThroughputStats {
+  httpRequestsTotal: number;
+  stdioRequestsTotal: number;
+}
+
+export interface SecurityStats {
+  astEgressFilterTriggersTotal: number;
+  shadowLeakDetectionsTotal: number;
+  blockedRequestsTotal: number;
+}
+
+export interface SecurityEvent {
+  timestamp: string;
+  reason: string;
+  tool: string;
+  snippet: string;
+}
+
+export interface GatewayTargetStatus {
+  name: string;
+  port: number;
+  status: 'online' | 'offline';
+  reason?: string;
+  updatedAt: string;
+}
+
+export interface AdminStatsResponse {
   routes: number;
   cache: CacheStats | null;
   circuitBreakers: CircuitBreakerStats[];
   preflight: PreflightStats;
   rateLimit: RateLimitStats;
   blockedRequests: BlockedRequestMetrics;
+  securityEvents: SecurityEvent[];
+  targetStatuses: GatewayTargetStatus[];
+  throughput: ThroughputStats;
+  security: SecurityStats;
 }
+
+export type ProxyStats = AdminStatsResponse;
 
 export interface AdminHealth {
   status: 'healthy';

@@ -10,7 +10,8 @@ import { getPrimaryToolInvocation, isRecord } from '../utils/mcp-request.js';
 
 const OOM_MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
 const DEFAULT_TARGET_TIMEOUT_MS = 30000;
-const TARGET_UNAVAILABLE_CODE = -32004;
+
+const PREFLIGHT_REQUIRED_TOOLS = new Set(['execute_command', 'execute']);
 
 type JsonRpcId = string | number | null;
 
@@ -37,6 +38,7 @@ interface PendingRequest {
   toolName?: string;
   cacheParams?: unknown;
   timeout: NodeJS.Timeout;
+  targetTimeoutMs?: number;
 }
 
 export interface StdioFirewallOptions {
@@ -53,7 +55,42 @@ export interface StdioFirewallOptions {
   adminEnabled?: boolean;
   adminPort?: number;
   targetTimeoutMs?: number;
+  verbose?: boolean;
+  proxyAuthToken?: string;
+  alwaysCacheTools?: string[];
+  neverCacheTools?: string[];
 }
+
+export interface StdioFirewallProxy {
+  start: () => Promise<void>;
+  stop: () => Promise<void>;
+}
+
+const isShadowLeakUrl = (url: string): boolean => {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+
+  const params = [...parsed.searchParams.entries()];
+  if (params.length === 0) return false;
+
+  const singleCharParams = params.filter(([k]) => k.length === 1);
+  if (singleCharParams.length >= 3) return true;
+
+  const valueLengths = params.map(([, v]) => v.length);
+  const shortValues = valueLengths.filter(len => len <= 2);
+  const byKey = new Map<string, number>();
+  for (const [k] of params) {
+    byKey.set(k, (byKey.get(k) ?? 0) + 1);
+  }
+  const repeatedKeys = [...byKey.values()].filter(count => count > 1);
+  if (repeatedKeys.length > 0 && shortValues.length >= 4) return true;
+
+  return false;
+};
 
 const isJsonRpcRequest = (value: unknown): value is JsonRpcRequest => {
   if (!isRecord(value)) return false;
@@ -67,8 +104,29 @@ const isJsonRpcResponse = (value: unknown): value is JsonRpcResponse => {
 };
 
 const buildRpcErrorResponse = (id: JsonRpcId, code: number, message: string, data?: unknown): JsonRpcResponse => ({
-  jsonrpc: '2.0', id, error: { code, message, data },
+  jsonrpc: '2.0', id, error: { code, message, ...(data !== undefined ? { data } : {}) },
 });
+
+const validateAuth = (proxyAuthToken: string | undefined, message: JsonRpcRequest): boolean => {
+  if (!proxyAuthToken) return true;
+
+  const params = message.params as Record<string, unknown> | undefined;
+  const meta = params?._meta as Record<string, unknown> | undefined;
+  const authorization = meta?.authorization as string | undefined;
+  if (!authorization) return false;
+
+  const bearerPrefix = 'Bearer ';
+  if (!authorization.startsWith(bearerPrefix)) return false;
+
+  try {
+    const encoded = authorization.slice(bearerPrefix.length);
+    const decoded = Buffer.from(encoded, 'base64').toString('utf8');
+    const payload = JSON.parse(decoded) as Record<string, unknown>;
+    return payload.token === proxyAuthToken;
+  } catch {
+    return false;
+  }
+};
 
 export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
   const input: Readable = options.input ?? process.stdin;
@@ -83,14 +141,15 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
     serverId,
     l1: { maxSize: 1000, ttlMs: (options.cacheTtlSeconds ?? 300) * 1000 },
     l2: { dbPath: options.cacheDir ?? path.join(process.cwd(), '.mcp-cache'), ttlMs: (options.cacheTtlSeconds ?? 300) * 1000 },
-    alwaysCacheTools: ['read_file', 'read', 'open_file', 'list_directory', 'list_files', 'search_files', 'search'],
-    neverCacheTools: ['write_file', 'write', 'create_file', 'execute_command', 'execute'],
+    alwaysCacheTools: options.alwaysCacheTools ?? ['read_file', 'read', 'open_file', 'list_directory', 'list_files', 'search_files', 'search'],
+    neverCacheTools: options.neverCacheTools ?? ['write_file', 'write', 'create_file', 'execute_command', 'execute'],
   });
 
   let clientInterface: readline.Interface | null = null;
   let targetInterface: readline.Interface | null = null;
   let targetProcess: ChildProcessWithoutNullStreams | null = null;
   let stopped = false;
+  let draining = false;
 
   const writeRawJson = (message: unknown): void => {
     output.write(JSON.stringify(message) + '\n');
@@ -105,15 +164,30 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
     return pending;
   };
 
+  const failAllPending = (code: number, message: string, data?: unknown): void => {
+    for (const [key, pending] of pendingRequests.entries()) {
+      clearTimeout(pending.timeout);
+      pendingRequests.delete(key);
+      writeRawJson(buildRpcErrorResponse(pending.id, code, message, data));
+    }
+  };
+
   const terminateTarget = (): void => {
     targetInterface?.close();
     targetInterface = null;
     if (targetProcess && !targetProcess.killed) targetProcess.kill('SIGTERM');
   };
 
+  const checkDrainComplete = (): void => {
+    if (draining && pendingRequests.size === 0) {
+      void stop();
+    }
+  };
+
   const stop = async (): Promise<void> => {
     if (stopped) return;
     stopped = true;
+    failAllPending(-32004, 'Fail-Closed: target process is unavailable.', { code: 'TARGET_UNAVAILABLE' });
     clientInterface?.close();
     terminateTarget();
     cacheManager.close();
@@ -138,18 +212,52 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
     }
 
     const requestId = message.id ?? null;
+    const tool = getPrimaryToolInvocation(message as unknown as Record<string, unknown>);
 
-    if (stopped || !targetProcess?.stdin.writable) {
-      writeRawJson(buildRpcErrorResponse(requestId, TARGET_UNAVAILABLE_CODE, 'Fail-Closed'));
+    if (message.method === 'tools/call' && !validateAuth(options.proxyAuthToken, message)) {
+      auditLog('AUTH_FAILURE', {
+        code: 'AUTH_FAILURE',
+        reason: 'Missing or invalid NHI authorization',
+        toolName: tool?.name,
+        snippet: JSON.stringify(tool?.arguments ?? {}).slice(0, 240),
+      });
+      writeRawJson(buildRpcErrorResponse(requestId, -32001, 'Fail-Closed: authentication required.', { code: 'AUTH_FAILURE' }));
       return;
     }
 
-    const tool = getPrimaryToolInvocation(message as Record<string, unknown>);
-    if (message.method === 'tools/call' && tool?.name && requestId !== null) {
-      const cached = cacheManager.get(tool.name, tool.arguments ?? {});
-      if (cached !== undefined) {
-        writeRawJson({ jsonrpc: '2.0', id: requestId, result: cached });
+    if (stopped || !targetProcess?.stdin.writable) {
+      writeRawJson(buildRpcErrorResponse(requestId, -32004, 'Fail-Closed: target process is unavailable.', { code: 'TARGET_UNAVAILABLE' }));
+      return;
+    }
+
+    if (message.method === 'tools/call' && tool?.name) {
+      if (PREFLIGHT_REQUIRED_TOOLS.has(tool.name)) {
+        writeRawJson(buildRpcErrorResponse(requestId, -32002, 'Fail-Closed: preflight approval required.', { code: 'PREFLIGHT_REQUIRED' }));
         return;
+      }
+
+      if ((tool.name === 'fetch_url' || tool.name === 'fetch') && tool.arguments) {
+        const args = tool.arguments as Record<string, unknown>;
+        for (const val of Object.values(args)) {
+          if (typeof val === 'string' && isShadowLeakUrl(val)) {
+            auditLog('SHADOWLEAK_BLOCKED_STDIO', {
+              code: 'SHADOWLEAK_DETECTED',
+              reason: 'ShadowLeak exfiltration pattern detected',
+              toolName: tool.name,
+              url: val,
+            });
+            writeRawJson(buildRpcErrorResponse(requestId, -32003, 'Fail-Closed: ShadowLeak exfiltration pattern detected.', { code: 'SHADOWLEAK_DETECTED' }));
+            return;
+          }
+        }
+      }
+
+      if (requestId !== null) {
+        const cached = cacheManager.get(tool.name, tool.arguments ?? {});
+        if (cached !== undefined) {
+          writeRawJson({ jsonrpc: '2.0', id: requestId, result: cached });
+          return;
+        }
       }
     }
 
@@ -157,7 +265,11 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
       const pendingTimeout = setTimeout(() => {
         const pending = clearPendingRequest(String(requestId));
         if (pending) {
-          writeRawJson(buildRpcErrorResponse(pending.id, -32007, 'Fail-Closed'));
+          writeRawJson(buildRpcErrorResponse(pending.id, -32007, 'Fail-Closed: target response timed out.', {
+            code: 'TARGET_RESPONSE_TIMEOUT',
+            timeoutMs: targetTimeoutMs,
+          }));
+          checkDrainComplete();
         }
       }, targetTimeoutMs);
       pendingTimeout.unref?.();
@@ -167,6 +279,7 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
         toolName: tool?.name,
         cacheParams: tool?.arguments ?? message.params,
         timeout: pendingTimeout,
+        targetTimeoutMs,
       });
     }
 
@@ -174,7 +287,7 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
       targetProcess.stdin.write(JSON.stringify(message) + '\n');
     } catch (error) {
       if (requestId !== null) clearPendingRequest(String(requestId));
-      writeRawJson(buildRpcErrorResponse(requestId, TARGET_UNAVAILABLE_CODE, 'write failed'));
+      writeRawJson(buildRpcErrorResponse(requestId, -32004, 'Fail-Closed: target process is unavailable.', { code: 'TARGET_UNAVAILABLE' }));
     }
   };
 
@@ -185,14 +298,7 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
     if (byteLength > OOM_MAX_RESPONSE_BYTES) {
       auditLog('OOM_PROTECTION_TRIGGERED', { id, byteLength, limit: OOM_MAX_RESPONSE_BYTES });
       if (id !== null && id !== undefined) {
-         writeRawJson({
-            jsonrpc: '2.0',
-            id: id,
-            error: {
-               code: -32000,
-               message: 'Response Too Large'
-            }
-         });
+        writeRawJson(buildRpcErrorResponse(id, -32005, 'Fail-Closed: Response exceeds strict OOM size limit.', { limit: OOM_MAX_RESPONSE_BYTES }));
       }
       return false;
     }
@@ -200,6 +306,8 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
   };
 
   const handleTargetLine = (line: string): void => {
+    if (stopped) return;
+
     const trimmed = line.trim();
     if (!trimmed) return;
 
@@ -207,35 +315,49 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
     try {
       message = JSON.parse(trimmed);
     } catch {
+      failAllPending(-32006, 'Fail-Closed: downstream target emitted invalid JSON.', { code: 'TARGET_INVALID_JSON' });
       terminateTarget();
+      checkDrainComplete();
       return;
     }
 
     if (!isJsonRpcResponse(message)) {
       const sanitized = sanitizeResponse(message);
       if (checkOomLimit(null, sanitized)) writeRawJson(sanitized);
+      checkDrainComplete();
       return;
     }
 
     const pending = clearPendingRequest(String(message.id));
-    if (!pending) return;
+    if (!pending) {
+      checkDrainComplete();
+      return;
+    }
 
     if (Object.prototype.hasOwnProperty.call(message, 'result')) {
       const sanitizedResult = sanitizeResponse(message.result);
-      if (!checkOomLimit(message.id, sanitizedResult)) return;
+      if (!checkOomLimit(message.id, sanitizedResult)) {
+        checkDrainComplete();
+        return;
+      }
 
       if (pending?.toolName) {
         cacheManager.set(pending.toolName, pending.cacheParams ?? {}, sanitizedResult);
       }
 
       writeRawJson({ jsonrpc: '2.0', id: message.id, result: sanitizedResult });
+      checkDrainComplete();
       return;
     }
 
     const sanitizedError = sanitizeResponse(message.error);
-    if (!checkOomLimit(message.id, sanitizedError)) return;
+    if (!checkOomLimit(message.id, sanitizedError)) {
+      checkDrainComplete();
+      return;
+    }
 
     writeRawJson({ jsonrpc: '2.0', id: message.id, error: sanitizedError });
+    checkDrainComplete();
   };
 
   const spawnTarget = (): void => {
@@ -266,8 +388,13 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
       clientInterface = readline.createInterface({ input: input, crlfDelay: Infinity });
       clientInterface.on('line', (line) => { void handleClientLine(line); });
       clientInterface.on('close', () => {
-        if (targetProcess?.stdin.writable) targetProcess.stdin.end();
-        void stop();
+        if (draining || stopped) return;
+        if (pendingRequests.size > 0) {
+          draining = true;
+          if (targetProcess?.stdin.writable) targetProcess.stdin.end();
+        } else {
+          void stop();
+        }
       });
     },
     stop,

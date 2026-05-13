@@ -1,6 +1,7 @@
 export interface CliOptions {
   targetCommand?: string;
   targetArgs: string[];
+  configPath?: string;
   verbose: boolean;
   help: boolean;
   embeddedTarget: boolean;
@@ -17,7 +18,7 @@ export interface ResolveTargetRuntime {
   entryScript?: string;
 }
 
-const splitCommandString = (value: string): string[] => {
+export const splitCommandString = (value: string): string[] => {
   const parts: string[] = [];
   let current = '';
   let quote: '"' | "'" | null = null;
@@ -120,6 +121,16 @@ export const parseCliArgs = (args: string[]): CliOptions => {
 
     if (arg === '--embedded-target') {
       options.embeddedTarget = true;
+      continue;
+    }
+
+    if (arg === '--config') {
+      const next = args[i + 1];
+      if (!next) {
+        throw new Error('Missing value for --config');
+      }
+      options.configPath = next;
+      i += 1;
       continue;
     }
 

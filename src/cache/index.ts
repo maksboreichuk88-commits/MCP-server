@@ -1,6 +1,6 @@
 import { L1Cache, createL1Cache } from './l1-cache.js';
 import { L2Cache, createL2Cache } from './l2-cache.js';
-import { auditLog } from '../utils/auditLogger.js';
+import { auditLog, closeSecurityLogStore, configureSecurityLogStore } from '../utils/auditLogger.js';
 
 export interface CacheConfig {
   serverId: string;
@@ -67,10 +67,11 @@ const createSwappableCacheManager = <T = unknown>(initial: CacheManager<T>): Swa
     invalidate: (method: string, params: unknown) => current.invalidate(method, params),
     clear: () => current.clear(),
     getStats: () => current.getStats(),
-    close: () => {
+    close: (): void => {
       const previous = current;
       current = createNoopCacheManager<T>();
       previous.close();
+      closeSecurityLogStore();
     },
     replace: (next: CacheManager<T>) => {
       const previous = current;
@@ -181,6 +182,7 @@ export const createCacheManager = <T = unknown>(config: CacheConfig): CacheManag
 let globalCacheManager: SwappableCacheManager | undefined;
 
 export const initializeCache = (config: CacheConfig): CacheManager => {
+  configureSecurityLogStore(config.l2?.dbPath);
   const nextCacheManager = createCacheManager(config);
 
   if (globalCacheManager) {

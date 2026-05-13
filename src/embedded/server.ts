@@ -1,8 +1,21 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+
+const MCP_PID_FILE = path.join(os.tmpdir(), 'claude-flow-mcp.pid');
+
+const writePidFile = (): void => {
+  const tmp = `${MCP_PID_FILE}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, String(process.pid), 'utf8');
+  fs.renameSync(tmp, MCP_PID_FILE);
+};
+
+const removePidFile = (): void => {
+  try { fs.unlinkSync(MCP_PID_FILE); } catch { }
+};
 
 interface PackageManifest {
   name?: string;
@@ -110,6 +123,13 @@ export const startEmbeddedMcpServer = async (): Promise<void> => {
       };
     },
   );
+
+  writePidFile();
+
+  const cleanup = (): void => { removePidFile(); };
+  process.once('exit', cleanup);
+  process.once('SIGINT', () => { cleanup(); process.exit(0); });
+  process.once('SIGTERM', () => { cleanup(); process.exit(0); });
 
   const transport = new StdioServerTransport();
   await server.connect(transport);

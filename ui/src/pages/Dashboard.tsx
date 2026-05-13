@@ -1,73 +1,110 @@
-import { useState, useEffect, useCallback } from 'react';
-import { 
-  Shield, 
-  Cpu, 
-  Database, 
-  Activity, 
-  RefreshCw, 
-  Zap,
+import { useCallback, useEffect, useState } from 'react';
+import {
+  Activity,
   AlertTriangle,
   CheckCircle,
-  XCircle,
-  Key,
+  Database,
+  RefreshCw,
   Server,
-  Lock
+  Shield,
+  XCircle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/Card';
 import { api } from '../services/api';
-import type { ProxyStats, CircuitBreakerStats } from '../types/api';
-import { clsx } from 'clsx';
+import type { AdminStatsResponse, CircuitBreakerStats } from '../types/api';
+
+const formatNumber = (value: number): string => new Intl.NumberFormat().format(value);
+
+const formatTimestamp = (value: string): string => {
+  const timestamp = new Date(value);
+  return Number.isNaN(timestamp.getTime()) ? value : timestamp.toLocaleTimeString();
+};
+
+const getCircuitStateClass = (state: CircuitBreakerStats['state']): string => {
+  switch (state) {
+    case 'CLOSED':
+      return 'bg-green-500/10 text-green-400 border-green-500/20';
+    case 'HALF_OPEN':
+      return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
+    case 'OPEN':
+      return 'bg-red-500/10 text-red-400 border-red-500/20';
+  }
+};
+
+const getCircuitStateIcon = (state: CircuitBreakerStats['state']) => {
+  switch (state) {
+    case 'CLOSED':
+      return <CheckCircle className="h-4 w-4 text-green-400" />;
+    case 'HALF_OPEN':
+      return <AlertTriangle className="h-4 w-4 text-yellow-400" />;
+    case 'OPEN':
+      return <XCircle className="h-4 w-4 text-red-400" />;
+  }
+};
 
 export default function Dashboard() {
-  const [stats, setStats] = useState<ProxyStats | null>(null);
-  const [health, setHealth] = useState<{ status: string; timestamp: string } | null>(null);
+  const [stats, setStats] = useState<AdminStatsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const loadData = useCallback(async () => {
+  const loadStats = useCallback(async () => {
+    setRefreshing(true);
     try {
-      const [h, s] = await Promise.all([
-        api.getHealth().catch(() => null),
-        api.getStats().catch(() => null)
-      ]);
-      setHealth(h);
-      setStats(s);
+      const nextStats = await api.fetchStats();
+      setStats(nextStats);
+      setLastUpdated(new Date());
       setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to connect');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch stats');
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
-  useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 5000);
-    return () => clearInterval(interval);
-  }, [loadData]);
+  const clearSecurityHistory = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await api.clearSecurityEvents();
+      await loadStats();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to clear security events');
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadStats]);
 
-  if (loading) {
+  useEffect(() => {
+    loadStats();
+    const interval = window.setInterval(loadStats, 5000);
+    return () => window.clearInterval(interval);
+  }, [loadStats]);
+
+  if (initialLoading && !stats) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gray-950 text-white">
         <div className="text-center">
-          <Cpu className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
-          <p className="text-gray-400">Connecting to Toolwall...</p>
+          <RefreshCw className="mx-auto mb-4 h-10 w-10 animate-spin text-blue-400" />
+          <p className="text-sm text-gray-400">Loading Toolwall stats...</p>
         </div>
       </div>
     );
   }
 
-  if (error && !stats) {
+  if (!stats) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <Card className="max-w-md bg-red-900/20 border-red-800">
+      <div className="flex min-h-screen items-center justify-center bg-gray-950 p-6 text-white">
+        <Card className="w-full max-w-md border-red-900/60 bg-red-950/20">
           <CardContent className="p-6 text-center">
-            <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-red-400 mb-2">Connection Failed</h2>
-            <p className="text-gray-400">{error}</p>
-            <button 
-              onClick={loadData}
-              className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white"
+            <XCircle className="mx-auto mb-4 h-10 w-10 text-red-400" />
+            <h1 className="mb-2 text-xl font-semibold text-red-300">Stats unavailable</h1>
+            <p className="text-sm text-gray-400">{error ?? 'Unable to connect to Admin API'}</p>
+            <button
+              className="mt-5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
+              disabled={refreshing}
+              onClick={loadStats}
             >
               Retry
             </button>
@@ -77,339 +114,286 @@ export default function Dashboard() {
     );
   }
 
-  const getCircuitStateIcon = (state: CircuitBreakerStats['state']) => {
-    switch (state) {
-      case 'CLOSED':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'HALF_OPEN':
-        return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
-      case 'OPEN':
-        return <XCircle className="w-4 h-4 text-red-500" />;
-    }
-  };
-
-  const getCircuitStateColor = (state: CircuitBreakerStats['state']) => {
-    switch (state) {
-      case 'CLOSED':
-        return 'text-green-500 bg-green-500/10';
-      case 'HALF_OPEN':
-        return 'text-yellow-500 bg-yellow-500/10';
-      case 'OPEN':
-        return 'text-red-500 bg-red-500/10';
-    }
-  };
-
-  const blockedRequests = stats?.blockedRequests;
-  const recentBlockedRequests = blockedRequests?.recent ?? [];
+  const cache = stats.cache;
+  const circuitSummary = stats.circuitBreakers.reduce<Record<CircuitBreakerStats['state'], number>>(
+    (summary, breaker) => {
+      summary[breaker.state] += 1;
+      return summary;
+    },
+    { CLOSED: 0, HALF_OPEN: 0, OPEN: 0 },
+  );
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
-        <header className="flex items-center justify-between border-b border-gray-800 pb-4">
+      <div className="mx-auto max-w-7xl space-y-6 p-6">
+        <header className="flex flex-col gap-4 border-b border-gray-800 pb-5 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
-            <Shield className="w-8 h-8 text-blue-500" />
+            <Shield className="h-8 w-8 text-blue-400" />
             <div>
-              <h1 className="text-2xl font-bold">Toolwall</h1>
-              <p className="text-sm text-gray-400">Fail-closed stdio boundary for local MCP workflows</p>
+              <h1 className="text-2xl font-bold">Toolwall Dashboard</h1>
+              <p className="text-sm text-gray-400">Live Admin API statistics from the proxy core</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            {health && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 text-green-400">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-sm font-medium">Healthy</span>
-              </div>
-            )}
-            <button 
-              onClick={loadData}
-              className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-400">
+            <span className="rounded-full border border-green-500/20 bg-green-500/10 px-3 py-1 text-green-400">
+              Connected
+            </span>
+            <span>Updated: {lastUpdated ? lastUpdated.toLocaleTimeString() : 'never'}</span>
+            <button
+              className="rounded-lg border border-gray-800 p-2 text-gray-300 transition hover:bg-gray-900 disabled:opacity-60"
+              disabled={refreshing}
+              onClick={loadStats}
             >
-              <RefreshCw className={clsx("w-5 h-5", loading && "animate-spin")} />
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </header>
 
         {error && (
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0" />
-            <span className="text-yellow-400 text-sm">{error}</span>
+          <div className="flex items-center gap-3 rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-4 text-sm text-yellow-300">
+            <AlertTriangle className="h-5 w-5 shrink-0" />
+            <span>{error}</span>
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-gray-900 border-gray-800">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-400">HTTP Tool Routes</CardTitle>
-              <Server className="w-4 h-4 text-gray-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">{stats?.routes ?? 0}</div>
-              <p className="text-xs text-gray-500 mt-1">Registered downstream HTTP routes</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-900 border-gray-800">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-400">L1 Cache Hit Rate</CardTitle>
-              <Activity className="w-4 h-4 text-gray-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">
-                {stats?.cache ? `${(stats.cache.hitRatio * 100).toFixed(1)}%` : 'N/A'}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                L1: {stats?.cache?.hits.l1 ?? 0} | L2: {stats?.cache?.hits.l2 ?? 0}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-900 border-gray-800">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-400">Cache Misses</CardTitle>
-              <Database className="w-4 h-4 text-gray-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">{stats?.cache?.misses ?? 0}</div>
-              <p className="text-xs text-gray-500 mt-1">Total cache misses</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-900 border-gray-800">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-400">Circuit Breakers</CardTitle>
-              <Shield className="w-4 h-4 text-gray-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-white">
-                {stats?.circuitBreakers?.length ?? 0}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Active breakers</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="bg-gray-900 border-gray-800">
+        <main className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <Card className="border-gray-800 bg-gray-900/70">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-blue-500" />
-                Circuit Breakers
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Activity className="h-5 w-5 text-blue-400" />
+                Throughput
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              {!stats?.circuitBreakers?.length ? (
-                <p className="text-gray-500 text-sm">No circuit breakers configured</p>
-              ) : (
-                <div className="space-y-3">
-                  {stats.circuitBreakers.map((cb) => (
-                    <div 
-                      key={cb.name}
-                      className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50"
-                    >
-                      <div className="flex items-center gap-3">
-                        {getCircuitStateIcon(cb.state)}
-                        <div>
-                          <p className="font-medium">{cb.name}</p>
-                          <p className="text-xs text-gray-500">
-                            {cb.failures} failures / {cb.successes} successes
-                          </p>
-                        </div>
-                      </div>
-                      <span className={clsx(
-                        'px-2.5 py-1 rounded-full text-xs font-medium',
-                        getCircuitStateColor(cb.state)
-                      )}>
-                        {cb.state}
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg bg-gray-950/70 p-4">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">HTTP</p>
+                  <p className="mt-2 text-3xl font-bold text-white">
+                    {formatNumber(stats.throughput.httpRequestsTotal)}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">/mcp requests</p>
+                </div>
+                <div className="rounded-lg bg-gray-950/70 p-4">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Stdio</p>
+                  <p className="mt-2 text-3xl font-bold text-white">
+                    {formatNumber(stats.throughput.stdioRequestsTotal)}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">JSON-RPC requests</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between rounded-lg bg-gray-950/50 p-3 text-sm">
+                <span className="flex items-center gap-2 text-gray-400">
+                  <Server className="h-4 w-4" />
+                  Registered HTTP routes
+                </span>
+                <span className="font-semibold text-white">{formatNumber(stats.routes)}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-gray-800 bg-gray-900/70">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Shield className="h-5 w-5 text-purple-400" />
+                Security
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+                <div className="rounded-lg bg-gray-950/70 p-4">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">AST Egress</p>
+                  <p className="mt-2 text-2xl font-bold text-purple-300">
+                    {formatNumber(stats.security.astEgressFilterTriggersTotal)}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-gray-950/70 p-4">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">ShadowLeak</p>
+                  <p className="mt-2 text-2xl font-bold text-red-300">
+                    {formatNumber(stats.security.shadowLeakDetectionsTotal)}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-gray-950/70 p-4">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Blocked</p>
+                  <p className="mt-2 text-2xl font-bold text-amber-300">
+                    {formatNumber(stats.security.blockedRequestsTotal)}
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-300">Blocked codes</p>
+                {stats.blockedRequests.byCode.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {stats.blockedRequests.byCode.map((item) => (
+                      <span
+                        className="rounded-full border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs text-red-200"
+                        key={item.code}
+                      >
+                        {item.code}: {formatNumber(item.count)}
                       </span>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No blocked requests recorded</p>
+                )}
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="border-gray-800 bg-gray-900/70">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Lock className="w-5 h-5 text-purple-500" />
-                Security Status
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Database className="h-5 w-5 text-green-400" />
+                Infrastructure
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50">
-                  <div className="flex items-center gap-3">
-                    <Key className="w-5 h-5 text-gray-400" />
-                    <span>Shared-Secret Auth</span>
-                  </div>
-                  <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-400">
-                    Env-Gated
+            <CardContent className="space-y-5">
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-gray-300">Cache</p>
+                  <span className="text-xs text-gray-500">
+                    Hit ratio: {cache ? `${(cache.hitRatio * 100).toFixed(1)}%` : 'N/A'}
                   </span>
                 </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50">
-                  <div className="flex items-center gap-3">
-                    <Shield className="w-5 h-5 text-gray-400" />
-                    <span>Color Boundary</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg bg-gray-950/70 p-3">
+                    <p className="text-xs text-gray-500">L1 hits</p>
+                    <p className="text-xl font-semibold">{formatNumber(cache?.hits.l1 ?? 0)}</p>
+                    <p className="text-xs text-gray-600">{formatNumber(cache?.l1.size ?? 0)} entries</p>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400">
-                    Enforcing
-                  </span>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50">
-                  <div className="flex items-center gap-3">
-                    <Zap className="w-5 h-5 text-gray-400" />
-                    <span>Semantic Egress Filter</span>
+                  <div className="rounded-lg bg-gray-950/70 p-3">
+                    <p className="text-xs text-gray-500">L2 hits</p>
+                    <p className="text-xl font-semibold">{formatNumber(cache?.hits.l2 ?? 0)}</p>
+                    <p className="text-xs text-gray-600">{formatNumber(cache?.l2.entries ?? 0)} entries</p>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400">
-                    Active
-                  </span>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50">
-                  <div className="flex items-center gap-3">
-                    <AlertTriangle className="w-5 h-5 text-gray-400" />
-                    <span>Preflight Validation</span>
+                  <div className="rounded-lg bg-gray-950/70 p-3">
+                    <p className="text-xs text-gray-500">Total hits</p>
+                    <p className="text-xl font-semibold">{formatNumber(cache?.hits.total ?? 0)}</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">
-                      Pending: {stats?.preflight.pending ?? 0}
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400">
-                      Ready
-                    </span>
+                  <div className="rounded-lg bg-gray-950/70 p-3">
+                    <p className="text-xs text-gray-500">Misses</p>
+                    <p className="text-xl font-semibold">{formatNumber(cache?.misses ?? 0)}</p>
                   </div>
                 </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50">
-                  <div className="flex items-center gap-3">
-                    <Activity className="w-5 h-5 text-gray-400" />
-                    <span>Prometheus Exporter</span>
-                  </div>
-                  <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400">
-                    /metrics Ready
-                  </span>
+              </section>
+
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-gray-300">Circuit Breakers</p>
+                  <span className="text-xs text-gray-500">{formatNumber(stats.circuitBreakers.length)} total</span>
                 </div>
-              </div>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div className="rounded-lg border border-green-500/20 bg-green-500/10 p-2 text-green-300">
+                    CLOSED {formatNumber(circuitSummary.CLOSED)}
+                  </div>
+                  <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-2 text-yellow-300">
+                    HALF {formatNumber(circuitSummary.HALF_OPEN)}
+                  </div>
+                  <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-2 text-red-300">
+                    OPEN {formatNumber(circuitSummary.OPEN)}
+                  </div>
+                </div>
+                {stats.circuitBreakers.length > 0 ? (
+                  <div className="max-h-40 space-y-2 overflow-auto pr-1">
+                    {stats.circuitBreakers.map((breaker) => (
+                      <div className="flex items-center justify-between rounded-lg bg-gray-950/60 p-3" key={breaker.name}>
+                        <div className="flex min-w-0 items-center gap-2">
+                          {getCircuitStateIcon(breaker.state)}
+                          <span className="truncate text-sm text-gray-200">{breaker.name}</span>
+                        </div>
+                        <span className={`rounded-full border px-2 py-0.5 text-xs ${getCircuitStateClass(breaker.state)}`}>
+                          {breaker.state} · {formatNumber(breaker.failures)} failures
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No circuit breakers reported</p>
+                )}
+              </section>
+
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-gray-300">Gateway Targets</p>
+                  <span className="text-xs text-gray-500">{formatNumber(stats.targetStatuses.length)} configured</span>
+                </div>
+                {stats.targetStatuses.length > 0 ? (
+                  <div className="max-h-40 space-y-2 overflow-auto pr-1">
+                    {stats.targetStatuses.map((target) => (
+                      <div className="flex items-center justify-between gap-3 rounded-lg bg-gray-950/60 p-3" key={target.name}>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm text-gray-200">{target.name}</p>
+                          <p className="text-xs text-gray-500">:{target.port}</p>
+                        </div>
+                        <span
+                          className={`rounded-full border px-2 py-0.5 text-xs ${
+                            target.status === 'online'
+                              ? 'border-green-500/20 bg-green-500/10 text-green-300'
+                              : 'border-red-500/20 bg-red-500/10 text-red-300'
+                          }`}
+                          title={target.reason}
+                        >
+                          {target.status === 'online' ? 'Online' : 'Offline'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No gateway targets configured</p>
+                )}
+              </section>
             </CardContent>
           </Card>
-        </div>
+        </main>
 
-        <Card className="bg-gray-900 border-gray-800">
+        <Card className="border-gray-800 bg-gray-900/70">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <XCircle className="w-5 h-5 text-red-500" />
-              Blocked Requests
-            </CardTitle>
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <AlertTriangle className="h-5 w-5 text-red-400" />
+                Recent Security Events
+              </CardTitle>
+              <button
+                className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-200 transition hover:bg-red-500/20 disabled:opacity-60"
+                disabled={refreshing || stats.securityEvents.length === 0}
+                onClick={clearSecurityHistory}
+              >
+                Clear History
+              </button>
+            </div>
           </CardHeader>
           <CardContent>
-            {blockedRequests ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="text-center p-4 rounded-lg bg-gray-800/50">
-                    <p className="text-2xl font-bold text-red-400">{blockedRequests.total}</p>
-                    <p className="text-xs text-gray-500">Total blocked requests</p>
-                  </div>
-                  <div className="text-center p-4 rounded-lg bg-gray-800/50">
-                    <p className="text-sm font-medium text-white break-words">
-                      {blockedRequests.lastBlockedAt ? new Date(blockedRequests.lastBlockedAt).toLocaleString() : 'N/A'}
-                    </p>
-                    <p className="text-xs text-gray-500">Last blocked at</p>
-                  </div>
-                  <div className="text-center p-4 rounded-lg bg-gray-800/50">
-                    <p className="text-2xl font-bold text-amber-400">{blockedRequests.byCode.length}</p>
-                    <p className="text-xs text-gray-500">Distinct blocked codes</p>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-gray-300">Blocked codes</p>
-                  {blockedRequests.byCode.length ? (
-                    <div className="flex flex-wrap gap-2">
-                      {blockedRequests.byCode.slice(0, 8).map((item) => (
-                        <span
-                          key={item.code}
-                          className="px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-300 border border-red-500/20"
-                        >
-                          {item.code} {item.count}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500">No blocked request codes recorded</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-gray-300">Recent blocked requests</p>
-                  {recentBlockedRequests.length ? (
-                    <div className="space-y-2">
-                      {recentBlockedRequests.slice(0, 5).map((entry) => (
-                        <div
-                          key={`${entry.timestamp}-${entry.code}-${entry.event}`}
-                          className="flex flex-col gap-1 rounded-lg bg-gray-800/50 p-3"
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="font-medium text-white">{entry.code}</span>
-                            <span className="text-xs text-gray-500">
-                              {new Date(entry.timestamp).toLocaleString()}
-                            </span>
-                          </div>
-                          <p className="text-xs text-gray-400">{entry.reason ?? entry.event}</p>
-                          <div className="flex flex-wrap gap-2 text-[11px] text-gray-500">
-                            {entry.ip && <span>ip: {entry.ip}</span>}
-                            {entry.path && <span>path: {entry.path}</span>}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500">No blocked requests recorded</p>
-                  )}
-                </div>
+            {stats.securityEvents.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="border-b border-gray-800 text-xs uppercase tracking-wide text-gray-500">
+                    <tr>
+                      <th className="pb-3 pr-4 font-medium">Time</th>
+                      <th className="pb-3 pr-4 font-medium">Tool</th>
+                      <th className="pb-3 pr-4 font-medium">Reason</th>
+                      <th className="pb-3 font-medium">Snippet</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-800">
+                    {stats.securityEvents.map((event, index) => (
+                      <tr key={`${event.timestamp}-${event.tool}-${index}`}>
+                        <td className="whitespace-nowrap py-3 pr-4 text-gray-400">{formatTimestamp(event.timestamp)}</td>
+                        <td className="py-3 pr-4">
+                          <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-xs text-blue-200">
+                            {event.tool}
+                          </span>
+                        </td>
+                        <td className="py-3 pr-4 text-red-200">{event.reason}</td>
+                        <td className="max-w-xl truncate py-3 text-gray-400">{event.snippet}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             ) : (
-              <p className="text-gray-500 text-sm">Blocked request metrics not initialized</p>
+              <p className="text-sm text-gray-500">No recent security events recorded</p>
             )}
           </CardContent>
         </Card>
-
-        <Card className="bg-gray-900 border-gray-800">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="w-5 h-5 text-green-500" />
-              Cache Statistics
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {stats?.cache ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-4 rounded-lg bg-gray-800/50">
-                  <p className="text-2xl font-bold text-blue-400">{stats.cache.l1.size}</p>
-                  <p className="text-xs text-gray-500">L1 Entries</p>
-                  <p className="text-xs text-gray-600">max: {stats.cache.l1.maxSize}</p>
-                </div>
-                <div className="text-center p-4 rounded-lg bg-gray-800/50">
-                  <p className="text-2xl font-bold text-green-400">{stats.cache.l2.entries}</p>
-                  <p className="text-xs text-gray-500">L2 Entries</p>
-                  <p className="text-xs text-gray-600">{stats.cache.l2.expiredEntries} expired</p>
-                </div>
-                <div className="text-center p-4 rounded-lg bg-gray-800/50">
-                  <p className="text-2xl font-bold text-purple-400">{stats.cache.hits.total}</p>
-                  <p className="text-xs text-gray-500">Total Hits</p>
-                </div>
-                <div className="text-center p-4 rounded-lg bg-gray-800/50">
-                  <p className="text-2xl font-bold text-red-400">{stats.cache.misses}</p>
-                  <p className="text-xs text-gray-500">Total Misses</p>
-                </div>
-              </div>
-            ) : (
-              <p className="text-gray-500 text-sm">Cache not initialized</p>
-            )}
-          </CardContent>
-        </Card>
-
-        <footer className="text-center text-gray-600 text-sm pt-4 border-t border-gray-800">
-          <p>Toolwall admin dashboard</p>
-          <p className="text-xs mt-1">Technical package and CLI identity: toolwall</p>
-        </footer>
       </div>
     </div>
   );

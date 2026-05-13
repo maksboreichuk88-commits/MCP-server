@@ -3,7 +3,9 @@ import path from 'node:path';
 import { startAdminServer } from './admin/index.js';
 import { getCache, initializeCache } from './cache/index.js';
 import { errorHandler } from './middleware/error-handler.js';
+import { astEgressFilter } from './middleware/ast-egress-filter.js';
 import { createRateLimiter } from './middleware/rate-limiter.js';
+import { recordHttpMcpRequest } from './metrics/prometheus.js';
 import { routeRequest } from './proxy/router.js';
 import { sanitizeResponse } from './proxy/shadow-leak-sanitizer.js';
 import { auditLog } from './utils/auditLogger.js';
@@ -24,6 +26,8 @@ const rateLimiter = createRateLimiter({
 });
 
 app.use('/mcp', rateLimiter);
+app.post('/mcp', (_req, _res, next) => { recordHttpMcpRequest(); next(); });
+app.use('/mcp', astEgressFilter);
 
 app.get('/health', (_req, res) => {
   res.json({

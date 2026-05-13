@@ -1,14 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
 import { EpistemicSecurityException, TrustGateError } from '../errors.js';
 import { auditLogWithSIEM } from '../utils/auditLogger.js';
+import { getPrimaryToolInvocation } from '../utils/mcp-request.js';
 
 export const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction): void => {
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const tool = getPrimaryToolInvocation(body);
+
   if (err instanceof EpistemicSecurityException) {
     auditLogWithSIEM('HARD_HALT', {
       reason: err.message,
       code: err.code,
       ip: req.ip,
       path: req.path,
+      toolName: tool?.name,
+      snippet: JSON.stringify(tool?.arguments ?? {}).slice(0, 240),
     });
 
     res.status(403).json({
@@ -26,6 +32,8 @@ export const errorHandler = (err: Error, req: Request, res: Response, next: Next
       code: err.code,
       ip: req.ip,
       path: req.path,
+      toolName: tool?.name,
+      snippet: JSON.stringify(tool?.arguments ?? {}).slice(0, 240),
       details: err.details,
     });
 

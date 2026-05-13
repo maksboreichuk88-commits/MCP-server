@@ -7,8 +7,10 @@ import { getCache, initializeCache } from '../cache/index.js';
 import { renderPrometheusMetrics } from '../metrics/prometheus.js';
 import { clearPreflightRegistries, getPreflightStats, registerPreflight } from '../middleware/preflight-validator.js';
 import { configureTenantRateLimit, getRateLimitStats, removeTenantRateLimit } from '../middleware/rate-limiter.js';
+import { getAllCircuitBreakerStats } from '../proxy/circuit-breaker.js';
 import { clearRoutes, getRegisteredRoutes, registerRoute, removeRoute } from '../proxy/router.js';
-import { auditLog, getBlockedRequestMetrics } from '../utils/auditLogger.js';
+import { getGatewayTargetStatuses } from '../gateway-config.js';
+import { auditLog, clearSecurityEvents, getBlockedRequestMetrics, getRecentSecurityEvents } from '../utils/auditLogger.js';
 
 const executableDir = typeof process !== 'undefined' && 'isBun' in process && process.isBun ? path.dirname(process.execPath) : process.cwd();
 const adminUiPath = path.join(executableDir, 'ui', 'dist');
@@ -48,6 +50,55 @@ const RouteConfigSchema = z.object({
   timeoutMs: z.number().int().min(100).max(30000).default(5000),
   headers: z.record(z.string()).optional(),
 });
+
+const astEgressFilterCodes = new Set([
+  'SHADOWLEAK_DETECTED',
+  'SENSITIVE_PATH_BLOCKED',
+  'SHELL_INJECTION_BLOCKED',
+  'EPISTEMIC_CONTRADICTION_DETECTED',
+]);
+
+const readPrometheusMetricValue = (metrics: string, metricName: string): number => {
+  const line = metrics.split('\n').find((candidate) => candidate.startsWith(`${metricName} `));
+  if (!line) return 0;
+
+  const value = Number.parseFloat(line.slice(metricName.length).trim());
+  return Number.isFinite(value) ? value : 0;
+};
+
+const createStatsPayload = () => {
+  const cache = getCache();
+  const blockedRequests = getBlockedRequestMetrics();
+  const circuitBreakers = getAllCircuitBreakerStats();
+  const prometheusMetrics = renderPrometheusMetrics();
+  const httpRequestsTotal = readPrometheusMetricValue(prometheusMetrics, 'mcp_firewall_http_requests_total');
+  const stdioRequestsTotal = readPrometheusMetricValue(prometheusMetrics, 'mcp_firewall_stdio_requests_total');
+  const blockedRequestsTotal = readPrometheusMetricValue(prometheusMetrics, 'mcp_firewall_blocked_requests_total');
+  const astEgressFilterTriggersTotal = blockedRequests.byCode
+    .filter((item) => astEgressFilterCodes.has(item.code))
+    .reduce((total, item) => total + item.count, 0);
+  const shadowLeakDetectionsTotal = blockedRequests.byCode.find((item) => item.code === 'SHADOWLEAK_DETECTED')?.count ?? 0;
+
+  return {
+    routes: getRegisteredRoutes().size,
+    cache: cache?.getStats() ?? null,
+    circuitBreakers,
+    preflight: getPreflightStats(),
+    rateLimit: getRateLimitStats(),
+    blockedRequests,
+    securityEvents: getRecentSecurityEvents(5),
+    targetStatuses: getGatewayTargetStatuses(),
+    throughput: {
+      httpRequestsTotal,
+      stdioRequestsTotal,
+    },
+    security: {
+      astEgressFilterTriggersTotal,
+      shadowLeakDetectionsTotal,
+      blockedRequestsTotal,
+    },
+  };
+};
 
 const adminAuthMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   const adminToken = process.env.ADMIN_TOKEN;
@@ -106,7 +157,7 @@ const adminCorsMiddleware = (_req: Request, res: Response, next: NextFunction): 
   next();
 };
 
-const createAdminRouter = (): express.Router => {
+export const createAdminRouter = (): express.Router => {
   const router = express.Router();
 
   router.options('*', (_req: Request, res: Response) => {
@@ -250,15 +301,14 @@ const createAdminRouter = (): express.Router => {
     res.json({ success: removed, tenantId });
   });
 
-  router.get('/stats', (_req: Request, res: Response) => {
-    const cache = getCache();
-    res.json({
-      routes: getRegisteredRoutes().size,
-      cache: cache?.getStats() ?? null,
-      preflight: getPreflightStats(),
-      rateLimit: getRateLimitStats(),
-      blockedRequests: getBlockedRequestMetrics(),
-    });
+  router.get(['/stats', '/api/stats'], (_req: Request, res: Response) => {
+    res.json(createStatsPayload());
+  });
+
+  router.delete(['/security-events', '/api/security-events'], adminAuthMiddleware, (_req: Request, res: Response) => {
+    const deleted = clearSecurityEvents();
+    auditLog('ADMIN_SECURITY_EVENTS_CLEARED', { deleted });
+    res.json({ success: true, deleted });
   });
 
   router.get('/metrics', (_req: Request, res: Response) => {
@@ -313,4 +363,3 @@ export const stopAdminServer = (): Promise<void> => {
   });
 };
 
-export { createAdminRouter };

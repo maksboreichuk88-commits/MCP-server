@@ -46,6 +46,18 @@ describe('cli target resolution', () => {
     });
   });
 
+  it('parses a gateway config path without treating it as a target command', () => {
+    const cli = parseCliArgs(['--config', 'targets.json']);
+
+    expect(cli).toEqual({
+      targetArgs: [],
+      configPath: 'targets.json',
+      verbose: false,
+      help: false,
+      embeddedTarget: false,
+    });
+  });
+
   it('falls back to the bundled standalone MCP target when no downstream target is configured', () => {
     const cli = parseCliArgs([]);
 

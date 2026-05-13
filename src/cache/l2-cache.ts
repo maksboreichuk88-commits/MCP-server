@@ -21,13 +21,36 @@ export interface L2Cache {
   close: () => void;
 }
 
-export const createL2Cache = (config: Partial<L2CacheConfig> = {}): L2Cache => {
-  const dbDir = config.dbPath ?? path.join(process.cwd(), '.mcp-cache');
+export interface SecurityLogEntry {
+  timestamp: string;
+  reason: string;
+  tool: string;
+  snippet: string;
+  code?: string;
+  event?: string;
+}
+
+export interface SecurityLogStore {
+  insert: (entry: SecurityLogEntry) => void;
+  listRecent: (limit?: number) => SecurityLogEntry[];
+  clear: () => number;
+  cleanupExpired: () => number;
+  close: () => void;
+}
+
+export const SECURITY_LOG_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+const resolveDbFile = (dbPath?: string): string => {
+  const dbDir = dbPath ?? path.join(process.cwd(), '.mcp-cache');
   if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
   }
 
-  const dbFile = path.join(dbDir, 'mcp-cache-l2.sqlite');
+  return path.join(dbDir, 'mcp-cache-l2.sqlite');
+};
+
+export const createL2Cache = (config: Partial<L2CacheConfig> = {}): L2Cache => {
+  const dbFile = resolveDbFile(config.dbPath);
   const db = new Database(dbFile);
 
   const ttlMs = config.ttlMs ?? 300000;
@@ -81,6 +104,9 @@ export const createL2Cache = (config: Partial<L2CacheConfig> = {}): L2Cache => {
 
   cleanupIfNeeded();
 
+  const cleanupTimer = setInterval(cleanupIfNeeded, 300_000);
+  cleanupTimer.unref();
+
   return {
     generateKey: (serverId: string, method: string, params: unknown): string => {
       const normalizedParams = typeof params === 'string' ? params : JSON.stringify(params);
@@ -116,7 +142,6 @@ export const createL2Cache = (config: Partial<L2CacheConfig> = {}): L2Cache => {
       const hitCount = existing?.hit_count ?? 0;
 
       stmtInsert.run(key, serialized, now, expiresAt, hitCount);
-      cleanupIfNeeded();
     },
 
     has: (key: string): boolean => {
@@ -148,6 +173,94 @@ export const createL2Cache = (config: Partial<L2CacheConfig> = {}): L2Cache => {
     },
 
     close: (): void => {
+      clearInterval(cleanupTimer);
+      db.close();
+    },
+  };
+};
+
+export const createSecurityLogStore = (
+  config: Partial<Pick<L2CacheConfig, 'dbPath' | 'ttlMs'>> = {},
+): SecurityLogStore => {
+  const dbFile = resolveDbFile(config.dbPath);
+  const db = new Database(dbFile);
+  const ttlMs = config.ttlMs ?? SECURITY_LOG_TTL_MS;
+
+  db.pragma('journal_mode = WAL');
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS security_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      timestamp TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL,
+      reason TEXT NOT NULL,
+      tool TEXT NOT NULL,
+      snippet TEXT NOT NULL,
+      code TEXT,
+      event TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_security_logs_created_at ON security_logs(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_security_logs_expires_at ON security_logs(expires_at)
+  `);
+
+  const stmtInsert = db.prepare(`
+    INSERT INTO security_logs (timestamp, created_at, expires_at, reason, tool, snippet, code, event)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const stmtListRecent = db.prepare(`
+    SELECT timestamp, reason, tool, snippet, code, event
+    FROM security_logs
+    WHERE expires_at > ?
+    ORDER BY created_at DESC
+    LIMIT ?
+  `);
+  const stmtClear = db.prepare('DELETE FROM security_logs');
+  const stmtCleanup = db.prepare('DELETE FROM security_logs WHERE expires_at <= ?');
+
+  const cleanupIfNeeded = (): void => {
+    stmtCleanup.run(Date.now());
+  };
+
+  cleanupIfNeeded();
+
+  const cleanupTimer = setInterval(cleanupIfNeeded, 300_000);
+  cleanupTimer.unref();
+
+  return {
+    insert: (entry: SecurityLogEntry): void => {
+      const parsedTimestamp = Date.parse(entry.timestamp);
+      const createdAt = Number.isFinite(parsedTimestamp) ? parsedTimestamp : Date.now();
+
+      stmtInsert.run(
+        entry.timestamp,
+        createdAt,
+        createdAt + ttlMs,
+        entry.reason,
+        entry.tool,
+        entry.snippet,
+        entry.code ?? null,
+        entry.event ?? null,
+      );
+    },
+
+    listRecent: (limit = 5): SecurityLogEntry[] => {
+      cleanupIfNeeded();
+      const safeLimit = Math.max(1, Math.min(Math.trunc(limit), 100));
+      return stmtListRecent.all(Date.now(), safeLimit) as SecurityLogEntry[];
+    },
+
+    clear: (): number => {
+      const result = stmtClear.run();
+      return result.changes;
+    },
+
+    cleanupExpired: (): number => {
+      const result = stmtCleanup.run(Date.now());
+      return result.changes;
+    },
+
+    close: (): void => {
+      clearInterval(cleanupTimer);
       db.close();
     },
   };

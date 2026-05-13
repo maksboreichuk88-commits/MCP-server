@@ -1,5 +1,5 @@
 import type {
-  ProxyStats,
+  AdminStatsResponse,
   AdminHealth,
   AdminRoute,
   CacheStats,
@@ -8,11 +8,17 @@ import type {
   BlockedRequestMetrics,
 } from '../types/api';
 
-const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.DEV ? 'http://localhost:9090' : '');
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 const getAuthHeaders = (): HeadersInit => {
   const token = localStorage.getItem('admin_token');
   return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+const fetchAdminStats = async (): Promise<AdminStatsResponse> => {
+  const res = await fetch(`${API_BASE}/stats`);
+  if (!res.ok) throw new Error('Failed to fetch stats');
+  return res.json();
 };
 
 export const api = {
@@ -22,11 +28,9 @@ export const api = {
     return res.json();
   },
 
-  async getStats(): Promise<ProxyStats> {
-    const res = await fetch(`${API_BASE}/stats`);
-    if (!res.ok) throw new Error('Failed to fetch stats');
-    return res.json();
-  },
+  fetchStats: fetchAdminStats,
+
+  getStats: fetchAdminStats,
 
   async getRoutes(): Promise<{ routes: AdminRoute[]; total: number }> {
     const res = await fetch(`${API_BASE}/routes`);
@@ -89,6 +93,15 @@ export const api = {
   async getBlockedRequestStats(): Promise<{ blockedRequests: BlockedRequestMetrics }> {
     const res = await fetch(`${API_BASE}/blocked-requests/stats`);
     if (!res.ok) throw new Error('Failed to fetch blocked request stats');
+    return res.json();
+  },
+
+  async clearSecurityEvents(): Promise<{ success: boolean; deleted: number }> {
+    const res = await fetch(`${API_BASE}/security-events`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to clear security events');
     return res.json();
   },
 

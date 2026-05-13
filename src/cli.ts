@@ -1,10 +1,27 @@
 #!/usr/bin/env node
 
 import 'dotenv/config';
+import express from 'express';
+import path from 'node:path';
+import { createAdminRouter } from './admin/index.js';
+import { getCache, initializeCache } from './cache/index.js';
 import { parseCliArgs, resolveTarget } from './cli-options.js';
 import { startEmbeddedMcpServer } from './embedded/server.js';
+import { astEgressFilter } from './middleware/ast-egress-filter.js';
+import { errorHandler } from './middleware/error-handler.js';
+import { createRateLimiter } from './middleware/rate-limiter.js';
+import { recordHttpMcpRequest } from './metrics/prometheus.js';
+import { routeRequest } from './proxy/router.js';
+import { sanitizeResponse } from './proxy/shadow-leak-sanitizer.js';
 import { resolveProxyRuntimeConfig } from './runtime-config.js';
 import { createStdioFirewallProxy } from './stdio/proxy.js';
+import { auditLog } from './utils/auditLogger.js';
+import { getPrimaryToolInvocation } from './utils/mcp-request.js';
+import { loadGatewayConfig, startGatewayTargets, stopGatewayTargets } from './gateway-config.js';
+
+const DEFAULT_GATEWAY_PORT = parseInt(process.env.PORT ?? process.env.MCP_PORT ?? '3000', 10);
+const DEFAULT_CACHE_TTL = parseInt(process.env.MCP_CACHE_TTL_SECONDS ?? '300', 10) * 1000;
+const DEFAULT_CACHE_DIR = process.env.MCP_CACHE_DIR ?? path.join(process.cwd(), '.mcp-cache');
 
 const printHelp = (): void => {
   process.stdout.write(`Toolwall
@@ -13,10 +30,12 @@ Usage:
   toolwall
   toolwall -- node target.js
   toolwall --target "node target.js"
+  toolwall --config targets.json
 
 Modes:
   no target supplied      start the bundled standalone MCP server
   target supplied         wrap a downstream MCP server behind the fail-closed stdio firewall
+  --config supplied       start an HTTP security gateway for multiple MCP targets
 
 Standalone tools:
   firewall_status         runtime status and deployment flags
@@ -36,6 +55,83 @@ Environment:
 `);
 };
 
+const startGateway = async (configPath: string): Promise<void> => {
+  const targets = loadGatewayConfig(configPath);
+  const runningTargets = startGatewayTargets(targets);
+
+  initializeCache({
+    serverId: process.env.MCP_SERVER_ID ?? 'gateway',
+    l1: { maxSize: 1000, ttlMs: DEFAULT_CACHE_TTL },
+    l2: { dbPath: DEFAULT_CACHE_DIR, ttlMs: DEFAULT_CACHE_TTL },
+    alwaysCacheTools: ['read_file', 'read', 'open_file', 'list_directory', 'list_files', 'search_files', 'search'],
+    neverCacheTools: ['write_file', 'write', 'create_file', 'execute_command', 'execute'],
+  });
+
+  const app = express();
+  const rateLimiter = createRateLimiter({
+    windowMs: 60000,
+    maxRequests: 100,
+  });
+
+  app.use(express.json({ strict: true, limit: '1mb' }));
+  app.use(createAdminRouter());
+  app.use('/mcp', rateLimiter);
+  app.post('/mcp', (_req, _res, next) => { recordHttpMcpRequest(); next(); });
+  app.use('/mcp', astEgressFilter);
+
+  app.post('/mcp', async (req, res, next) => {
+    try {
+      const body = req.body as Record<string, unknown>;
+      const tool = getPrimaryToolInvocation(body);
+
+      if (!tool?.name) {
+        res.status(400).json({
+          error: { code: 'INVALID_MCP_REQUEST', message: 'Fail-Closed' },
+        });
+        return;
+      }
+
+      const toolArgs = tool.arguments ?? {};
+      const cache = getCache();
+      const cachedResponse = cache?.get(tool.name, toolArgs);
+      if (cachedResponse !== undefined) {
+        res.setHeader('X-Proxy-Cache', 'HIT');
+        res.status(200).json(cachedResponse);
+        return;
+      }
+
+      const result = await routeRequest(tool.name, body);
+      const sanitizedBody = sanitizeResponse(result.body);
+
+      if (result.status >= 200 && result.status < 300) {
+        cache?.set(tool.name, toolArgs, sanitizedBody);
+      }
+
+      res.setHeader('X-Proxy-Cache', 'MISS');
+      res.status(result.status).json(sanitizedBody);
+    } catch (error: unknown) {
+      next(error);
+    }
+  });
+
+  app.use(errorHandler);
+
+  const server = app.listen(DEFAULT_GATEWAY_PORT, () => {
+    auditLog('MCP_GATEWAY_STARTED', {
+      port: DEFAULT_GATEWAY_PORT,
+      targets: targets.map((target) => ({ name: target.name, port: target.port })),
+    });
+  });
+
+  const shutdown = (): void => {
+    stopGatewayTargets(runningTargets);
+    server.close(() => process.exit(0));
+  };
+
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
+};
+
 const main = async (): Promise<void> => {
   const cli = parseCliArgs(process.argv.slice(2));
 
@@ -46,6 +142,11 @@ const main = async (): Promise<void> => {
 
   if (cli.embeddedTarget) {
     await startEmbeddedMcpServer();
+    return;
+  }
+
+  if (cli.configPath) {
+    await startGateway(cli.configPath);
     return;
   }
 
