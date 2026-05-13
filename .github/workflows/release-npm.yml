@@ -116,12 +116,14 @@ jobs:
           const fs = require('node:fs');
 
           const version = process.env.GITHUB_REF_NAME.replace(/^v/, '');
+          const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const packageName = packageJson.name;
           const metadata = JSON.parse(
             execFileSync(
               'npm',
               [
                 'view',
-                `toolwall@${version}`,
+                `${packageName}@${version}`,
                 'version',
                 'repository',
                 'homepage',
@@ -153,6 +155,7 @@ jobs:
             '## published release identity',
             '',
             `- tag: \`${process.env.GITHUB_REF_NAME}\``,
+            `- package name: \`${packageName}\``,
             `- package version: \`${metadata.version || version}\``,
             `- npm repository: \`${getField(metadata.repository)}\``,
             `- npm homepage: \`${getField(metadata.homepage)}\``,

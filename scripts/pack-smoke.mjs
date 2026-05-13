@@ -13,7 +13,6 @@ const packageJsonPath = path.join(repoRoot, 'package.json');
 const demoTargetPath = path.join(repoRoot, 'examples', 'demo-target.js');
 const npmCliPath = path.join(path.dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js');
 const npxCliPath = path.join(path.dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npx-cli.js');
-const publishedCliName = 'toolwall';
 const tempPackDirPath = fs.mkdtempSync(path.join(os.tmpdir(), 'mcp-pack-smoke-'));
 const npmInvocation = process.platform === 'win32'
   ? {
@@ -35,10 +34,11 @@ const npxInvocation = process.platform === 'win32'
     };
 
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+const publishedCliName = Object.keys(packageJson.bin ?? {})[0];
 const cliPath = packageJson.bin?.[publishedCliName];
 
 if (typeof cliPath !== 'string') {
-  throw new Error(`Missing ${publishedCliName} bin entry in package.json.`);
+  throw new Error('Missing bin entry in package.json.');
 }
 
 const formatFailure = (label, command, args, stdout, stderr, message) => {

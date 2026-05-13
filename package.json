@@ -1,6 +1,6 @@
 {
   "name": "@maksiph14/toolwall",
-  "version": "2.2.7",
+  "version": "2.2.8",
   "description": "Fail-closed stdio firewall for risky local MCP JSON-RPC tool calls",
   "main": "dist/lib.js",
   "exports": {

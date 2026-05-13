@@ -4,12 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog and the project follows semantic versioning.
 
 
-## 2.2.7 - 2026-05-13
+## 2.2.8 - 2026-05-13
 - Fixes critical security regression in stdio path (0 false negatives in benchmark)
 - Aligns stdio and HTTP security validators (AST, Scope, Color, Preflight)
 - Adds persistent security event logging in SQLite (7-day history)
 - Implements resilient multi-target Gateway mode with Zod validation
 - Adds "Clear History" and Target Status indicators to UI Dashboard
+- Fixes release pipeline package-name lookup by reading the npm package name dynamically from package.json
 
 ## 2.2.6 - 2026-04-07
 
