@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog and the project follows semantic versioning.
 
+
+## 2.2.7 - 2026-05-13
+- Fixes critical security regression in stdio path (0 false negatives in benchmark)
+- Aligns stdio and HTTP security validators (AST, Scope, Color, Preflight)
+- Adds persistent security event logging in SQLite (7-day history)
+- Implements resilient multi-target Gateway mode with Zod validation
+- Adds "Clear History" and Target Status indicators to UI Dashboard
+
 ## 2.2.6 - 2026-04-07
 
 - cuts the first Toolwall release-candidate boundary as a dedicated `2.2.6` version instead of reusing the already-published `2.2.5` line

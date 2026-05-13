@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { EpistemicSecurityException } from '../errors.js';
+import { extractToolInvocations, isRecord } from '../utils/mcp-request.js';
 
 const SENSITIVE_PATH_PATTERNS = [
   /\.env(\.|$)/i,
@@ -98,20 +99,27 @@ const checkArguments = (toolName: string, args: Record<string, unknown>): Episte
   return null;
 };
 
+export const validateAstEgress = (body: Record<string, unknown>): void => {
+  const tools = extractToolInvocations(body);
+
+  for (const tool of tools) {
+    if (!tool.name || !isRecord(tool.arguments)) {
+      continue;
+    }
+
+    const error = checkArguments(tool.name, tool.arguments);
+    if (error) {
+      throw error;
+    }
+  }
+};
+
 export const astEgressFilter = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
   const body = (req.body ?? {}) as Record<string, unknown>;
-  const params = body.params as Record<string, unknown> | undefined;
 
-  if (!params) {
-    next();
-    return;
-  }
-
-  const toolName = (params.name as string | undefined) ?? '';
-  const args = (params.arguments as Record<string, unknown> | undefined) ?? {};
-
-  const error = checkArguments(toolName, args);
-  if (error) {
+  try {
+    validateAstEgress(body);
+  } catch (error) {
     next(error);
     return;
   }

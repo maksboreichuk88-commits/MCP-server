@@ -4,16 +4,20 @@ import readline from 'node:readline';
 import { Readable, Writable } from 'node:stream';
 import { initializeCache } from '../cache/index.js';
 import { stopAdminServer, startAdminServer } from '../admin/index.js';
+import { EpistemicSecurityException, TrustGateError } from '../errors.js';
+import { validateAstEgress } from '../middleware/ast-egress-filter.js';
+import { parseNhiAuthorizationHeader } from '../middleware/nhi-auth-validator.js';
+import { validatePreflight } from '../middleware/preflight-validator.js';
+import { validateScopes } from '../middleware/scope-validator.js';
 import { sanitizeResponse } from '../proxy/shadow-leak-sanitizer.js';
 import { auditLog } from '../utils/auditLogger.js';
-import { getPrimaryToolInvocation, isRecord } from '../utils/mcp-request.js';
+import { extractAuthorizationFromBody, extractToolInvocations, getPrimaryToolInvocation, isRecord } from '../utils/mcp-request.js';
 
 const OOM_MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
 const DEFAULT_TARGET_TIMEOUT_MS = 30000;
 
-const PREFLIGHT_REQUIRED_TOOLS = new Set(['execute_command', 'execute']);
-
 type JsonRpcId = string | number | null;
+type SessionColor = 'red' | 'blue' | null;
 
 interface JsonRpcRequest {
   jsonrpc: '2.0';
@@ -66,32 +70,6 @@ export interface StdioFirewallProxy {
   stop: () => Promise<void>;
 }
 
-const isShadowLeakUrl = (url: string): boolean => {
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return false;
-  }
-
-  const params = [...parsed.searchParams.entries()];
-  if (params.length === 0) return false;
-
-  const singleCharParams = params.filter(([k]) => k.length === 1);
-  if (singleCharParams.length >= 3) return true;
-
-  const valueLengths = params.map(([, v]) => v.length);
-  const shortValues = valueLengths.filter(len => len <= 2);
-  const byKey = new Map<string, number>();
-  for (const [k] of params) {
-    byKey.set(k, (byKey.get(k) ?? 0) + 1);
-  }
-  const repeatedKeys = [...byKey.values()].filter(count => count > 1);
-  if (repeatedKeys.length > 0 && shortValues.length >= 4) return true;
-
-  return false;
-};
-
 const isJsonRpcRequest = (value: unknown): value is JsonRpcRequest => {
   if (!isRecord(value)) return false;
   return value.jsonrpc === '2.0' && typeof value.method === 'string';
@@ -107,25 +85,70 @@ const buildRpcErrorResponse = (id: JsonRpcId, code: number, message: string, dat
   jsonrpc: '2.0', id, error: { code, message, ...(data !== undefined ? { data } : {}) },
 });
 
-const validateAuth = (proxyAuthToken: string | undefined, message: JsonRpcRequest): boolean => {
-  if (!proxyAuthToken) return true;
+const extractStdioAuthorization = (message: JsonRpcRequest): string | undefined => {
+  const fromBody = extractAuthorizationFromBody(message as unknown as Record<string, unknown>);
+  if (fromBody) return fromBody;
 
-  const params = message.params as Record<string, unknown> | undefined;
-  const meta = params?._meta as Record<string, unknown> | undefined;
-  const authorization = meta?.authorization as string | undefined;
-  if (!authorization) return false;
-
-  const bearerPrefix = 'Bearer ';
-  if (!authorization.startsWith(bearerPrefix)) return false;
-
-  try {
-    const encoded = authorization.slice(bearerPrefix.length);
-    const decoded = Buffer.from(encoded, 'base64').toString('utf8');
-    const payload = JSON.parse(decoded) as Record<string, unknown>;
-    return payload.token === proxyAuthToken;
-  } catch {
-    return false;
+  if (!isRecord(message.params) || !isRecord(message.params._meta)) {
+    return undefined;
   }
+
+  const authorization = message.params._meta.authorization;
+  return typeof authorization === 'string' ? authorization : undefined;
+};
+
+const parseStdioAuthScopes = (proxyAuthToken: string | undefined, message: JsonRpcRequest): string[] => {
+  if (!proxyAuthToken) return [];
+  const parsed = parseNhiAuthorizationHeader(extractStdioAuthorization(message), proxyAuthToken, 'stdio');
+  return parsed.scopes;
+};
+
+const createSnippet = (message: JsonRpcRequest): string => {
+  const tool = getPrimaryToolInvocation(message as unknown as Record<string, unknown>);
+  try {
+    return JSON.stringify(tool?.arguments ?? message.params ?? {}).slice(0, 240);
+  } catch {
+    return String(tool?.name ?? message.method).slice(0, 240);
+  }
+};
+
+const validateColorBoundary = (message: JsonRpcRequest, sessionColor: SessionColor): SessionColor => {
+  const tools = extractToolInvocations(message as unknown as Record<string, unknown>);
+  const reds = tools.filter((tool) => tool._meta?.color === 'red').map((tool) => tool.name ?? 'unknown');
+  const blues = tools.filter((tool) => tool._meta?.color === 'blue').map((tool) => tool.name ?? 'unknown');
+
+  if (reds.length > 0 && blues.length > 0) {
+    throw new TrustGateError(
+      `Cross-Tool Hijack Attempt detected: ${[...reds, ...blues].join(', ')}`,
+      'CROSS_TOOL_HIJACK_ATTEMPT',
+      403,
+      { redTools: reds, blueTools: blues },
+    );
+  }
+
+  const requestColor: SessionColor = reds.length > 0 ? 'red' : blues.length > 0 ? 'blue' : null;
+  if (requestColor !== null && sessionColor !== null && requestColor !== sessionColor) {
+    throw new TrustGateError(
+      `Cross-Tool Hijack Attempt detected: ${tools.map((tool) => tool.name ?? 'unknown').join(', ')}`,
+      'CROSS_TOOL_HIJACK_ATTEMPT',
+      403,
+      { sessionColor, requestColor },
+    );
+  }
+
+  return requestColor ?? sessionColor;
+};
+
+const getSecurityErrorCode = (error: unknown): string => {
+  if (error instanceof EpistemicSecurityException || error instanceof TrustGateError) {
+    return error.code;
+  }
+
+  return 'SECURITY_VALIDATION_FAILED';
+};
+
+const getSecurityErrorMessage = (error: unknown): string => {
+  return error instanceof Error ? error.message : 'Fail-Closed: security validation failed.';
 };
 
 export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
@@ -150,6 +173,7 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
   let targetProcess: ChildProcessWithoutNullStreams | null = null;
   let stopped = false;
   let draining = false;
+  let stdioSessionColor: SessionColor = null;
 
   const writeRawJson = (message: unknown): void => {
     output.write(JSON.stringify(message) + '\n');
@@ -213,16 +237,21 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
 
     const requestId = message.id ?? null;
     const tool = getPrimaryToolInvocation(message as unknown as Record<string, unknown>);
+    let availableScopes: string[] = [];
 
-    if (message.method === 'tools/call' && !validateAuth(options.proxyAuthToken, message)) {
-      auditLog('AUTH_FAILURE', {
-        code: 'AUTH_FAILURE',
-        reason: 'Missing or invalid NHI authorization',
-        toolName: tool?.name,
-        snippet: JSON.stringify(tool?.arguments ?? {}).slice(0, 240),
-      });
-      writeRawJson(buildRpcErrorResponse(requestId, -32001, 'Fail-Closed: authentication required.', { code: 'AUTH_FAILURE' }));
-      return;
+    if (message.method === 'tools/call' && options.proxyAuthToken) {
+      try {
+        availableScopes = parseStdioAuthScopes(options.proxyAuthToken, message);
+      } catch {
+        auditLog('AUTH_FAILURE', {
+          code: 'AUTH_FAILURE',
+          reason: 'Missing or invalid NHI authorization',
+          toolName: tool?.name,
+          snippet: createSnippet(message),
+        });
+        writeRawJson(buildRpcErrorResponse(requestId, -32001, 'Fail-Closed: authentication required.', { code: 'AUTH_FAILURE' }));
+        return;
+      }
     }
 
     if (stopped || !targetProcess?.stdin.writable) {
@@ -230,28 +259,31 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
       return;
     }
 
-    if (message.method === 'tools/call' && tool?.name) {
-      if (PREFLIGHT_REQUIRED_TOOLS.has(tool.name)) {
-        writeRawJson(buildRpcErrorResponse(requestId, -32002, 'Fail-Closed: preflight approval required.', { code: 'PREFLIGHT_REQUIRED' }));
+    if (message.method === 'tools/call') {
+      try {
+        validateAstEgress(message as unknown as Record<string, unknown>);
+        if (options.proxyAuthToken) {
+          validateScopes(message as unknown as Record<string, unknown>, availableScopes, 'stdio');
+        }
+        stdioSessionColor = validateColorBoundary(message, stdioSessionColor);
+        validatePreflight(message as unknown as Record<string, unknown>, 'stdio');
+      } catch (error) {
+        const code = getSecurityErrorCode(error);
+        const messageText = getSecurityErrorMessage(error);
+        if (error instanceof EpistemicSecurityException || code === 'CROSS_TOOL_HIJACK_ATTEMPT') {
+          auditLog(code, {
+            code,
+            reason: messageText,
+            toolName: tool?.name,
+            snippet: createSnippet(message),
+          });
+        }
+        writeRawJson(buildRpcErrorResponse(requestId, -32003, messageText, { code }));
         return;
       }
+    }
 
-      if ((tool.name === 'fetch_url' || tool.name === 'fetch') && tool.arguments) {
-        const args = tool.arguments as Record<string, unknown>;
-        for (const val of Object.values(args)) {
-          if (typeof val === 'string' && isShadowLeakUrl(val)) {
-            auditLog('SHADOWLEAK_BLOCKED_STDIO', {
-              code: 'SHADOWLEAK_DETECTED',
-              reason: 'ShadowLeak exfiltration pattern detected',
-              toolName: tool.name,
-              url: val,
-            });
-            writeRawJson(buildRpcErrorResponse(requestId, -32003, 'Fail-Closed: ShadowLeak exfiltration pattern detected.', { code: 'SHADOWLEAK_DETECTED' }));
-            return;
-          }
-        }
-      }
-
+    if (message.method === 'tools/call' && tool?.name) {
       if (requestId !== null) {
         const cached = cacheManager.get(tool.name, tool.arguments ?? {});
         if (cached !== undefined) {
