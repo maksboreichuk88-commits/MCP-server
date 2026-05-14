@@ -14,7 +14,7 @@ export const validateSchema = (
 ): void => {
   const tools = extractToolInvocations(body);
 
-  if (body.method !== 'tools/call' || tools.length === 0) {
+  if (body['method'] !== 'tools/call' || tools.length === 0) {
     return;
   }
 

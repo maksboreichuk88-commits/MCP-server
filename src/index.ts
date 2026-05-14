@@ -11,10 +11,10 @@ import { sanitizeResponse } from './proxy/shadow-leak-sanitizer.js';
 import { auditLog } from './utils/auditLogger.js';
 import { getPrimaryToolInvocation } from './utils/mcp-request.js';
 
-const DEFAULT_PORT = parseInt(process.env.PORT ?? process.env.MCP_PORT ?? '3000', 10);
-const DEFAULT_ADMIN_PORT = parseInt(process.env.MCP_ADMIN_PORT ?? '9090', 10);
-const DEFAULT_CACHE_TTL = parseInt(process.env.MCP_CACHE_TTL_SECONDS ?? '300', 10) * 1000;
-const DEFAULT_CACHE_DIR = process.env.MCP_CACHE_DIR ?? path.join(process.cwd(), '.mcp-cache');
+const DEFAULT_PORT = parseInt(process.env['PORT'] ?? process.env['MCP_PORT'] ?? '3000', 10);
+const DEFAULT_ADMIN_PORT = parseInt(process.env['MCP_ADMIN_PORT'] ?? '9090', 10);
+const DEFAULT_CACHE_TTL = parseInt(process.env['MCP_CACHE_TTL_SECONDS'] ?? '300', 10) * 1000;
+const DEFAULT_CACHE_DIR = process.env['MCP_CACHE_DIR'] ?? path.join(process.cwd(), '.mcp-cache');
 
 const app = express();
 
@@ -34,7 +34,7 @@ app.get('/health', (_req, res) => {
     status: 'healthy',
     service: 'mcp-proxy',
     timestamp: new Date().toISOString(),
-    adminEnabled: process.env.MCP_ADMIN_ENABLED === 'true',
+    adminEnabled: process.env['MCP_ADMIN_ENABLED'] === 'true',
   });
 });
 
@@ -77,16 +77,16 @@ app.use(errorHandler);
 
 export default app;
 
-if (process.env.NODE_ENV !== 'test') {
+if (process.env['NODE_ENV'] !== 'test') {
   initializeCache({
-    serverId: process.env.MCP_SERVER_ID ?? 'default',
+    serverId: process.env['MCP_SERVER_ID'] ?? 'default',
     l1: { maxSize: 1000, ttlMs: DEFAULT_CACHE_TTL },
     l2: { dbPath: DEFAULT_CACHE_DIR, ttlMs: DEFAULT_CACHE_TTL },
     alwaysCacheTools: ['read_file', 'read', 'open_file', 'list_directory', 'list_files', 'search_files', 'search'],
     neverCacheTools: ['write_file', 'write', 'create_file', 'execute_command', 'execute'],
   });
 
-  const adminPort = process.env.MCP_ADMIN_ENABLED === 'true' ? DEFAULT_ADMIN_PORT : 0;
+  const adminPort = process.env['MCP_ADMIN_ENABLED'] === 'true' ? DEFAULT_ADMIN_PORT : 0;
   if (adminPort > 0) {
     startAdminServer(adminPort);
   }

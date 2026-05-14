@@ -20,7 +20,7 @@ export interface ParsedNhiToken {
 
 export const parseNhiAuthorizationHeader = (
   authHeader: string | undefined,
-  serverToken: string | undefined = process.env.PROXY_AUTH_TOKEN,
+  serverToken: string | undefined = process.env['PROXY_AUTH_TOKEN'],
   ip = 'unknown'
 ): ParsedNhiToken => {
   if (!serverToken) {
@@ -76,7 +76,7 @@ export const nhiAuthValidator = (req: Request, res: Response, next: NextFunction
   delete req.headers.authorization;
 
   try {
-    const nhiPayload = parseNhiAuthorizationHeader(authHeader, process.env.PROXY_AUTH_TOKEN, req.ip);
+    const nhiPayload = parseNhiAuthorizationHeader(authHeader, process.env['PROXY_AUTH_TOKEN'], req.ip);
     req.nhiScopes = nhiPayload.scopes;
     next();
   } catch (error: unknown) {

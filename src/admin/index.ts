@@ -101,7 +101,7 @@ const createStatsPayload = () => {
 };
 
 const adminAuthMiddleware = (req: Request, res: Response, next: NextFunction): void => {
-  const adminToken = process.env.ADMIN_TOKEN;
+  const adminToken = process.env['ADMIN_TOKEN'];
 
   if (!adminToken) {
     auditLog('ADMIN_NOT_CONFIGURED', {
@@ -150,7 +150,7 @@ const adminAuthMiddleware = (req: Request, res: Response, next: NextFunction): v
 };
 
 const adminCorsMiddleware = (_req: Request, res: Response, next: NextFunction): void => {
-  const allowedOrigin = process.env.MCP_ADMIN_CORS_ORIGIN ?? '*';
+  const allowedOrigin = process.env['MCP_ADMIN_CORS_ORIGIN'] ?? '*';
   res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
@@ -199,7 +199,7 @@ export const createAdminRouter = (): express.Router => {
 
   router.delete('/routes/:toolName', adminAuthMiddleware, (req: Request, res: Response) => {
     try {
-      const toolName = String(req.params.toolName);
+      const toolName = String(req.params['toolName']);
       const removed = removeRoute(toolName);
       auditLog('ADMIN_ROUTE_REMOVED', { toolName, removed });
       res.json({ success: removed, toolName });
@@ -296,7 +296,7 @@ export const createAdminRouter = (): express.Router => {
   });
 
   router.delete('/rate-limit/tenant/:tenantId', adminAuthMiddleware, (req: Request, res: Response) => {
-    const tenantId = String(req.params.tenantId);
+    const tenantId = String(req.params['tenantId']);
     const removed = removeTenantRateLimit(tenantId);
     res.json({ success: removed, tenantId });
   });

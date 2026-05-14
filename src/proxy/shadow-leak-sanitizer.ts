@@ -59,11 +59,6 @@ const defaultConfig: SanitizeConfig = {
   maskSensitiveValues: true,
 };
 
-const maskSensitiveKey = (key: string): string => {
-  if (key.length <= 4) return '***';
-  return key.slice(0, 2) + '*'.repeat(key.length - 4) + key.slice(-2);
-};
-
 const redactInlineSecrets = (value: string): string => {
   if (!SECRET_TEXT_MARKER_PATTERN.test(value)) {
     return value;

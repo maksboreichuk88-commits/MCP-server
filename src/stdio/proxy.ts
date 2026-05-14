@@ -74,12 +74,12 @@ export interface StdioFirewallProxy {
 
 const isJsonRpcRequest = (value: unknown): value is JsonRpcRequest => {
   if (!isRecord(value)) return false;
-  return value.jsonrpc === '2.0' && typeof value.method === 'string';
+  return value['jsonrpc'] === '2.0' && typeof value['method'] === 'string';
 };
 
 const isJsonRpcResponse = (value: unknown): value is JsonRpcResponse => {
   if (!isRecord(value)) return false;
-  return value.jsonrpc === '2.0' && Object.prototype.hasOwnProperty.call(value, 'id') &&
+  return value['jsonrpc'] === '2.0' && Object.prototype.hasOwnProperty.call(value, 'id') &&
     (Object.prototype.hasOwnProperty.call(value, 'result') || Object.prototype.hasOwnProperty.call(value, 'error'));
 };
 
@@ -91,11 +91,11 @@ const extractStdioAuthorization = (message: JsonRpcRequest): string | undefined 
   const fromBody = extractAuthorizationFromBody(message as unknown as Record<string, unknown>);
   if (fromBody) return fromBody;
 
-  if (!isRecord(message.params) || !isRecord(message.params._meta)) {
+  if (!isRecord(message['params']) || !isRecord(message['params']['_meta'])) {
     return undefined;
   }
 
-  const authorization = message.params._meta.authorization;
+  const authorization = message['params']['_meta']['authorization'];
   return typeof authorization === 'string' ? authorization : undefined;
 };
 
@@ -156,7 +156,6 @@ const getSecurityErrorMessage = (error: unknown): string => {
 export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
   const input: Readable = options.input ?? process.stdin;
   const output: Writable = options.output ?? process.stdout;
-  const errorOutput: Writable = options.errorOutput ?? process.stderr;
 
   const pendingRequests = new Map<string, PendingRequest>();
   const targetTimeoutMs = options.targetTimeoutMs ?? DEFAULT_TARGET_TIMEOUT_MS;

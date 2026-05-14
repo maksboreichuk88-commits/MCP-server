@@ -72,8 +72,8 @@ const readStringDetail = (details: Record<string, unknown>, keys: string[]): str
 };
 
 const inferBlockedCode = (event: string, details: Record<string, unknown>): string | null => {
-  if (typeof details.code === 'string' && details.code.length > 0) {
-    return details.code;
+  if (typeof details['code'] === 'string' && details['code'].length > 0) {
+    return details['code'];
   }
 
   if (event === 'AUTH_FAILURE' || event === 'UNAUTHORIZED') {
@@ -93,7 +93,7 @@ const toSnippet = (details: Record<string, unknown>): string | undefined => {
     return explicit.slice(0, 240);
   }
 
-  const nested = details.details;
+  const nested = details['details'];
   if (nested !== undefined) {
     try {
       return JSON.stringify(nested).slice(0, 240);
@@ -108,7 +108,7 @@ const toSnippet = (details: Record<string, unknown>): string | undefined => {
 const getSecurityLogStore = (): SecurityLogStore => {
   if (!securityLogStore) {
     securityLogStore = createSecurityLogStore({
-      dbPath: process.env.MCP_CACHE_DIR ?? process.env.CACHE_DIR,
+      dbPath: process.env['MCP_CACHE_DIR'] ?? process.env['CACHE_DIR'],
     });
   }
 
@@ -129,7 +129,7 @@ const recordSecurityLog = (timestamp: string, event: string, code: string, detai
   try {
     getSecurityLogStore().insert({
       timestamp,
-      reason: typeof details.reason === 'string' ? details.reason : code,
+      reason: typeof details['reason'] === 'string' ? details['reason'] : code,
       tool: readStringDetail(details, ['tool', 'toolName']) ?? 'unknown',
       snippet: toSnippet(details) ?? event,
       code,
@@ -149,9 +149,9 @@ const recordBlockedRequest = (timestamp: string, event: string, details: Record<
     timestamp,
     event,
     code,
-    reason: typeof details.reason === 'string' ? details.reason : undefined,
-    ip: typeof details.ip === 'string' ? details.ip : undefined,
-    path: typeof details.path === 'string' ? details.path : undefined,
+    reason: typeof details['reason'] === 'string' ? details['reason'] : undefined,
+    ip: typeof details['ip'] === 'string' ? details['ip'] : undefined,
+    path: typeof details['path'] === 'string' ? details['path'] : undefined,
     tool: readStringDetail(details, ['tool', 'toolName']),
     snippet: toSnippet(details),
   });

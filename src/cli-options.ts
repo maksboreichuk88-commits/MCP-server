@@ -189,19 +189,19 @@ export const resolveTarget = (
     };
   }
 
-  const envCommand = env.MCP_TARGET_COMMAND?.trim();
+  const envCommand = env['MCP_TARGET_COMMAND']?.trim();
   if (envCommand) {
-    if (env.MCP_TARGET_ARGS_JSON) {
+    if (env['MCP_TARGET_ARGS_JSON']) {
       return {
         targetCommand: envCommand,
-        targetArgs: parseJsonArgs(env.MCP_TARGET_ARGS_JSON),
+        targetArgs: parseJsonArgs(env['MCP_TARGET_ARGS_JSON']),
       };
     }
 
-    if (env.MCP_TARGET_ARGS?.trim()) {
+    if (env['MCP_TARGET_ARGS']?.trim()) {
       return {
         targetCommand: envCommand,
-        targetArgs: splitCommandString(env.MCP_TARGET_ARGS),
+        targetArgs: splitCommandString(env['MCP_TARGET_ARGS']),
       };
     }
 
@@ -211,7 +211,7 @@ export const resolveTarget = (
     };
   }
 
-  const fullCommand = env.MCP_TARGET?.trim();
+  const fullCommand = env['MCP_TARGET']?.trim();
   if (fullCommand) {
     const parsed = splitCommandString(fullCommand);
     if (parsed.length === 0) {

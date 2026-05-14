@@ -33,17 +33,17 @@ export interface ProxyRuntimeConfig {
 
 export const resolveProxyRuntimeConfig = (env: NodeJS.ProcessEnv): ProxyRuntimeConfig => {
   return {
-    adminPort: parseEnvInt(env.MCP_ADMIN_PORT ?? env.ADMIN_PORT, {
+    adminPort: parseEnvInt(env['MCP_ADMIN_PORT'] ?? env['ADMIN_PORT'], {
       fallback: 9090,
       min: 1,
       max: 65535,
     }),
-    cacheTtlSeconds: parseEnvInt(env.MCP_CACHE_TTL_SECONDS ?? env.CACHE_TTL_SECONDS, {
+    cacheTtlSeconds: parseEnvInt(env['MCP_CACHE_TTL_SECONDS'] ?? env['CACHE_TTL_SECONDS'], {
       fallback: 300,
       min: 1,
       max: 86400,
     }),
-    targetTimeoutMs: parseEnvInt(env.MCP_TARGET_TIMEOUT_MS, {
+    targetTimeoutMs: parseEnvInt(env['MCP_TARGET_TIMEOUT_MS'], {
       fallback: 30000,
       min: 1,
       max: 300000,

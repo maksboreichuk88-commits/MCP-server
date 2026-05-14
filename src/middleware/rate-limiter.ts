@@ -48,8 +48,8 @@ const parseEnvInt = (rawValue: string | undefined, fallback: number, min: number
 };
 
 export const resolveRateLimitConfig = (env: NodeJS.ProcessEnv = process.env): Pick<RateLimitConfig, 'windowMs' | 'maxRequests'> => ({
-  windowMs: parseEnvInt(env.MCP_RATE_LIMIT_WINDOW_MS ?? env.RATE_LIMIT_WINDOW_MS, DEFAULT_RATE_LIMIT_WINDOW_MS, 1000, 3600000),
-  maxRequests: parseEnvInt(env.MCP_RATE_LIMIT_MAX_REQUESTS ?? env.RATE_LIMIT_MAX_REQUESTS, DEFAULT_RATE_LIMIT_MAX_REQUESTS, 1, 100000),
+  windowMs: parseEnvInt(env['MCP_RATE_LIMIT_WINDOW_MS'] ?? env['RATE_LIMIT_WINDOW_MS'], DEFAULT_RATE_LIMIT_WINDOW_MS, 1000, 3600000),
+  maxRequests: parseEnvInt(env['MCP_RATE_LIMIT_MAX_REQUESTS'] ?? env['RATE_LIMIT_MAX_REQUESTS'], DEFAULT_RATE_LIMIT_MAX_REQUESTS, 1, 100000),
 });
 
 const normalizeConfig = (config: Pick<RateLimitConfig, 'windowMs' | 'maxRequests'>): Pick<RateLimitConfig, 'windowMs' | 'maxRequests'> => ({

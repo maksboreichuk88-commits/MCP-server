@@ -19,9 +19,9 @@ import { auditLog } from './utils/auditLogger.js';
 import { getPrimaryToolInvocation } from './utils/mcp-request.js';
 import { loadGatewayConfig, startGatewayTargets, stopGatewayTargets } from './gateway-config.js';
 
-const DEFAULT_GATEWAY_PORT = parseInt(process.env.PORT ?? process.env.MCP_PORT ?? '3000', 10);
-const DEFAULT_CACHE_TTL = parseInt(process.env.MCP_CACHE_TTL_SECONDS ?? '300', 10) * 1000;
-const DEFAULT_CACHE_DIR = process.env.MCP_CACHE_DIR ?? path.join(process.cwd(), '.mcp-cache');
+const DEFAULT_GATEWAY_PORT = parseInt(process.env['PORT'] ?? process.env['MCP_PORT'] ?? '3000', 10);
+const DEFAULT_CACHE_TTL = parseInt(process.env['MCP_CACHE_TTL_SECONDS'] ?? '300', 10) * 1000;
+const DEFAULT_CACHE_DIR = process.env['MCP_CACHE_DIR'] ?? path.join(process.cwd(), '.mcp-cache');
 
 const printHelp = (): void => {
   process.stdout.write(`Toolwall
@@ -60,7 +60,7 @@ const startGateway = async (configPath: string): Promise<void> => {
   const runningTargets = startGatewayTargets(targets);
 
   initializeCache({
-    serverId: process.env.MCP_SERVER_ID ?? 'gateway',
+    serverId: process.env['MCP_SERVER_ID'] ?? 'gateway',
     l1: { maxSize: 1000, ttlMs: DEFAULT_CACHE_TTL },
     l2: { dbPath: DEFAULT_CACHE_DIR, ttlMs: DEFAULT_CACHE_TTL },
     alwaysCacheTools: ['read_file', 'read', 'open_file', 'list_directory', 'list_files', 'search_files', 'search'],
@@ -162,13 +162,13 @@ const main = async (): Promise<void> => {
   const proxy = createStdioFirewallProxy({
     targetCommand: target.targetCommand,
     targetArgs: target.targetArgs,
-    adminEnabled: process.env.MCP_ADMIN_ENABLED === 'true' || process.env.ADMIN_ENABLED === 'true',
+    adminEnabled: process.env['MCP_ADMIN_ENABLED'] === 'true' || process.env['ADMIN_ENABLED'] === 'true',
     adminPort: runtimeConfig.adminPort,
-    cacheDir: process.env.MCP_CACHE_DIR ?? process.env.CACHE_DIR,
+    cacheDir: process.env['MCP_CACHE_DIR'] ?? process.env['CACHE_DIR'],
     cacheTtlSeconds: runtimeConfig.cacheTtlSeconds,
     targetTimeoutMs: runtimeConfig.targetTimeoutMs,
-    verbose: cli.verbose || process.env.MCP_VERBOSE === 'true' || process.env.VERBOSE === 'true',
-    proxyAuthToken: process.env.PROXY_AUTH_TOKEN,
+    verbose: cli.verbose || process.env['MCP_VERBOSE'] === 'true' || process.env['VERBOSE'] === 'true',
+    proxyAuthToken: process.env['PROXY_AUTH_TOKEN'],
     rateLimit: resolveRateLimitConfig(),
   });
 

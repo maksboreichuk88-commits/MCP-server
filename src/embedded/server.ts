@@ -38,7 +38,7 @@ const packageName = manifest.name ?? 'toolwall';
 const packageVersion = manifest.version ?? '0.0.0';
 
 const adminEnabled = (): boolean => {
-  return process.env.MCP_ADMIN_ENABLED === 'true' || process.env.ADMIN_ENABLED === 'true';
+  return process.env['MCP_ADMIN_ENABLED'] === 'true' || process.env['ADMIN_ENABLED'] === 'true';
 };
 
 const createTextContent = (text: string) => {
@@ -63,12 +63,12 @@ export const startEmbeddedMcpServer = async (): Promise<void> => {
         mode: 'standalone',
         transport: 'stdio',
         adminEnabled: adminEnabled(),
-        proxyAuthConfigured: Boolean(process.env.PROXY_AUTH_TOKEN),
+        proxyAuthConfigured: Boolean(process.env['PROXY_AUTH_TOKEN']),
         targetConfigured: Boolean(
-          process.env.MCP_TARGET_COMMAND?.trim() ||
-          process.env.MCP_TARGET_ARGS_JSON?.trim() ||
-          process.env.MCP_TARGET_ARGS?.trim() ||
-          process.env.MCP_TARGET?.trim(),
+          process.env['MCP_TARGET_COMMAND']?.trim() ||
+          process.env['MCP_TARGET_ARGS_JSON']?.trim() ||
+          process.env['MCP_TARGET_ARGS']?.trim() ||
+          process.env['MCP_TARGET']?.trim(),
         ),
         nodeVersion: process.version,
       };

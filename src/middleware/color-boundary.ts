@@ -8,29 +8,29 @@ const extractTools = (body: Record<string, unknown>): Array<{ name: string; colo
 
   const addTool = (name: string, meta: unknown) => {
     const metaRecord = meta as Record<string, unknown> | undefined;
-    const _meta = metaRecord?._meta as Record<string, unknown> | undefined;
-    const color = _meta?.color as string | undefined;
+    const _meta = metaRecord?.['_meta'] as Record<string, unknown> | undefined;
+    const color = _meta?.['color'] as string | undefined;
     results.push({ name, color: color ?? null });
   };
 
-  const params = body.params as Record<string, unknown> | undefined;
+  const params = body['params'] as Record<string, unknown> | undefined;
 
-  if (params?.tools && Array.isArray(params.tools)) {
-    for (const t of params.tools as Array<Record<string, unknown>>) {
-      addTool(String(t.name ?? ''), t);
+  if (params?.['tools'] && Array.isArray(params['tools'])) {
+    for (const t of params['tools'] as Array<Record<string, unknown>>) {
+      addTool(String(t['name'] ?? ''), t);
     }
     return results;
   }
 
-  if (params?.name) {
-    const color = (params._meta as Record<string, unknown> | undefined)?.color as string | undefined;
-    results.push({ name: String(params.name), color: color ?? null });
+  if (params?.['name']) {
+    const color = (params['_meta'] as Record<string, unknown> | undefined)?.['color'] as string | undefined;
+    results.push({ name: String(params['name']), color: color ?? null });
     return results;
   }
 
-  if (body.tools && Array.isArray(body.tools)) {
-    for (const t of body.tools as Array<Record<string, unknown>>) {
-      addTool(String(t.name ?? ''), t);
+  if (body['tools'] && Array.isArray(body['tools'])) {
+    for (const t of body['tools'] as Array<Record<string, unknown>>) {
+      addTool(String(t['name'] ?? ''), t);
     }
     return results;
   }

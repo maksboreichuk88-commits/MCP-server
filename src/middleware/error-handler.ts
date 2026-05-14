@@ -3,7 +3,7 @@ import { EpistemicSecurityException, TrustGateError } from '../errors.js';
 import { auditLogWithSIEM } from '../utils/auditLogger.js';
 import { getPrimaryToolInvocation } from '../utils/mcp-request.js';
 
-export const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction): void => {
+export const errorHandler = (err: Error, req: Request, res: Response, _next: NextFunction): void => {
   const body = (req.body ?? {}) as Record<string, unknown>;
   const tool = getPrimaryToolInvocation(body);
 

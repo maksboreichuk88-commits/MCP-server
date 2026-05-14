@@ -1,5 +1,5 @@
-import { L1Cache, createL1Cache } from './l1-cache.js';
-import { L2Cache, createL2Cache } from './l2-cache.js';
+import { createL1Cache } from './l1-cache.js';
+import { createL2Cache } from './l2-cache.js';
 import { auditLog, closeSecurityLogStore, configureSecurityLogStore } from '../utils/auditLogger.js';
 
 export interface CacheConfig {
