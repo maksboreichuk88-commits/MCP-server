@@ -9,19 +9,24 @@ This quickstart is intentionally narrow:
 - one protected `stdio` boundary
 - one repo-local proof command sequence
 
-## 1. Install Dependencies
+Prerequisites:
+
+- Node.js `>=20.0.0`
+- npm
+
+## Step 1. Install Dependencies
 
 ```bash
 npm install
 ```
 
-## 2. Build The Current Tree
+## Step 2. Build The Current Tree
 
 ```bash
 npm run build
 ```
 
-## 3. Run The Flagship Proof Path
+## Step 3. Run The Flagship Proof Path
 
 ```bash
 npm run demo:stdio
@@ -44,7 +49,7 @@ What this proves:
 - exfiltration-shaped `fetch_url` traffic is denied before downstream execution
 - missing-auth traffic is denied at the transport boundary
 
-## 4. Wire A Real Downstream Target
+## Step 4. Wire A Real Downstream Target
 
 After the demo path passes, switch from the repo demo target to your own local MCP server:
 
@@ -53,24 +58,28 @@ After the demo path passes, switch from the repo demo target to your own local M
   "mcpServers": {
     "protected-local-tooling": {
       "command": "npx",
-      "args": ["-y", "toolwall"],
-      "env": {
-        "PROXY_AUTH_TOKEN": "replace-with-32-byte-secret",
-        "MCP_TARGET_COMMAND": "node",
-        "MCP_TARGET_ARGS_JSON": "[\"C:/absolute/path/to/your-mcp-server.js\"]"
-      }
+      "args": [
+        "-y",
+        "@maksiph14/toolwall",
+        "--",
+        "node",
+        "C:/absolute/path/to/your-mcp-server.js"
+      ]
     }
   }
 }
 ```
 
 Use:
-- `PROXY_AUTH_TOKEN` for the shared-secret auth envelope
-- `MCP_TARGET_COMMAND` and `MCP_TARGET_ARGS_JSON` as the canonical downstream target inputs
+- `npx -y @maksiph14/toolwall` as the Toolwall package entry point
+- `--` to separate Toolwall arguments from the downstream MCP target command
+- `node C:/absolute/path/to/your-mcp-server.js` as the target command to replace
+
+Set `PROXY_AUTH_TOKEN` only when the agent can also send `_meta.authorization` in each protected `tools/call` request.
 
 For more examples, see [CLIENT_CONFIG_EXAMPLES.md](CLIENT_CONFIG_EXAMPLES.md).
 
-## 5. Run The Deeper Local Checks
+## Step 5. Run The Deeper Local Checks
 
 If the short proof path looks correct, run the deeper local verification chain:
 
@@ -84,7 +93,7 @@ npm run pack:smoke
 
 For the compact proof pack, use [EVIDENCE_BUNDLE.md](EVIDENCE_BUNDLE.md).
 
-## 6. What This Quickstart Does Not Prove
+## Step 6. What This Quickstart Does Not Prove
 
 This quickstart does not prove:
 

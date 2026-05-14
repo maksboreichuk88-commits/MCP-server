@@ -2,12 +2,13 @@
 
 Fail-closed AST filters, rate limiting, SQLite-backed security event history, and audit logging for MCP tool execution.
 
-[![npm version](https://img.shields.io/npm/v/toolwall)](https://www.npmjs.com/package/toolwall)
+[![npm version](https://img.shields.io/npm/v/%40maksiph14%2Ftoolwall)](https://www.npmjs.com/package/@maksiph14/toolwall)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ## Review entry points
 
 - [How to Install (Docker)](#how-to-install-docker)
+- [Quickstart](docs/QUICKSTART.md)
 - [How it Works (Architecture)](docs/ARCHITECTURE.md)
 - [Proof of Security (Evidence Bundle)](docs/EVIDENCE_BUNDLE.md)
 
@@ -17,8 +18,51 @@ Fail-closed AST filters, rate limiting, SQLite-backed security event history, an
 
 Toolwall includes a Node 20 multistage Docker build and a Compose service with persistent SQLite/cache storage under `/data`.
 
+Prerequisites:
+
+- Docker Engine with Docker Compose v2
+- Node.js `>=20.0.0` when using the npm-based `stdio` agent configuration below
+
+Step 1. Clone the repository.
+
 ```bash
-docker compose up --build toolwall
+git clone https://github.com/shleder/toolwall.git
+cd toolwall
+```
+
+Step 2. Create `.env` in the repository root.
+
+```env
+ADMIN_TOKEN=replacewith32alphanumericcharacters0000
+PROXY_AUTH_TOKEN=replacewith32alphanumericcharacters1111
+```
+
+Step 3. Start the Docker service.
+
+```bash
+docker compose up -d --build toolwall
+```
+
+Step 4. Verify the running services.
+
+```bash
+curl -fsS http://localhost:3000/health
+curl -fsS http://localhost:9090/health
+curl -fsS http://localhost:9090/api/stats
+```
+
+Step 5. Open the dashboard.
+
+```text
+http://localhost:9090
+```
+
+For protected Admin API write operations, send `Authorization: Bearer <ADMIN_TOKEN>`. The value is read from the `.env` file by Docker Compose.
+
+Step 6. Stop the Docker service.
+
+```bash
+docker compose down
 ```
 
 Default exposed ports:
@@ -163,16 +207,50 @@ Run:
 
 ### Client Configuration (Claude Code / Cursor)
 
+Use `stdio` mode for local AI agents. The agent starts Toolwall, and Toolwall starts the downstream MCP server.
+
+Step 1. Add this MCP server entry to the agent configuration.
+
 ```json
 {
   "mcpServers": {
-    "protected-server": {
-      "command": "./toolwall",
-      "args": ["--target", "npx @modelcontextprotocol/server-everything"]
+    "protected-local-tooling": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@maksiph14/toolwall",
+        "--",
+        "node",
+        "C:/absolute/path/to/your-mcp-server.js"
+      ]
     }
   }
 }
 ```
+
+Step 2. Replace the target command after `--` with the MCP server that the agent should access through Toolwall.
+
+Example with an npm-launched target:
+
+```json
+{
+  "mcpServers": {
+    "protected-npm-target": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@maksiph14/toolwall",
+        "--",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-everything"
+      ]
+    }
+  }
+}
+```
+
+Do not set `PROXY_AUTH_TOKEN` in this config unless the agent also sends `_meta.authorization` in each protected `tools/call` request.
 
 ### Telemetry and Administration
 
