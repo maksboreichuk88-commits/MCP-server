@@ -7,14 +7,14 @@ Related docs:
 
 - client setups: [docs/CLIENT_CONFIG_EXAMPLES.md](../docs/CLIENT_CONFIG_EXAMPLES.md)
 - runtime behavior: [docs/RUNTIME_CONTRACT.md](../docs/RUNTIME_CONTRACT.md)
-- shortest local proof path: [docs/PROXY_SETUP.md](../docs/PROXY_SETUP.md)
-- repeatable benchmark output: [docs/STDIO_BENCHMARK_GUIDE.md](../docs/STDIO_BENCHMARK_GUIDE.md)
+- shortest local proof path: [docs/QUICKSTART.md](../docs/QUICKSTART.md)
+- repeatable benchmark output: [docs/EVIDENCE_BUNDLE.md](../docs/EVIDENCE_BUNDLE.md)
 
 Maintained package paths:
 
-1. primary path: protected downstream MCP server mode via `MCP_TARGET_COMMAND` plus `MCP_TARGET_ARGS_JSON`
+1. primary path: protected downstream MCP server mode via `npx -y @maksiph14/toolwall -- <target>`
 2. demo path: protected local read/search workflow via `examples/demo-target.js`
-3. secondary standalone path: bundled MCP mode via `npx -y toolwall`
+3. secondary standalone path: bundled MCP mode via `npx -y @maksiph14/toolwall`
 
 Canonical repo-local proof path:
 
@@ -37,12 +37,13 @@ Canonical MCP client configuration path:
   "mcpServers": {
     "protected-demo-target": {
       "command": "npx",
-      "args": ["-y", "toolwall"],
-      "env": {
-        "PROXY_AUTH_TOKEN": "replace-with-32-byte-secret",
-        "MCP_TARGET_COMMAND": "node",
-        "MCP_TARGET_ARGS_JSON": "[\"C:/absolute/path/to/toolwall/examples/demo-target.js\"]"
-      }
+      "args": [
+        "-y",
+        "@maksiph14/toolwall",
+        "--",
+        "node",
+        "C:/absolute/path/to/toolwall/examples/demo-target.js"
+      ]
     }
   }
 }
@@ -53,10 +54,7 @@ Then write JSON-RPC lines to stdin. If `PROXY_AUTH_TOKEN` is configured, include
 Read/search-shaped protected workflow using the packaged CLI:
 
 ```powershell
-$env:PROXY_AUTH_TOKEN = "12345678901234567890123456789012"
-$env:MCP_TARGET_COMMAND = "node"
-$env:MCP_TARGET_ARGS_JSON = "[\"C:/absolute/path/to/toolwall/examples/demo-target.js\"]"
-npx --yes toolwall
+npx --yes @maksiph14/toolwall -- node C:/absolute/path/to/toolwall/examples/demo-target.js
 ```
 
 This uses a reproducible demo target for proof and regression coverage. It is not a full filesystem MCP server.

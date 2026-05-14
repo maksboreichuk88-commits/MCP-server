@@ -12,9 +12,3 @@ contact_links:
   - name: Security reporting policy
     url: https://github.com/shleder/toolwall/blob/main/SECURITY.md
     about: Follow the security policy for sensitive findings instead of posting exploit details publicly.
-  - name: Workflow setup and audits
-    url: https://github.com/shleder/toolwall/blob/main/docs/GUIDED_SETUP_AND_AUDITS.md
-    about: Review the workflow setup/help surface for one real local MCP workflow before opening an intake request.
-  - name: Workflow hardening guide
-    url: https://github.com/shleder/toolwall/blob/main/docs/WORKFLOW_HARDENING.md
-    about: Start with the operator guide for risky local MCP calls, auth gaps, and fail-closed rollout.

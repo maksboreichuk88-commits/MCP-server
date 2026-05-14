@@ -3,7 +3,7 @@
 Before opening an issue, use the shortest self-check path:
 
 - [docs/QUICKSTART.md](docs/QUICKSTART.md)
-- [docs/DEMO_RUN_TRANSCRIPT.md](docs/DEMO_RUN_TRANSCRIPT.md)
+- [docs/CLIENT_CONFIG_EXAMPLES.md](docs/CLIENT_CONFIG_EXAMPLES.md)
 - [docs/EVIDENCE_BUNDLE.md](docs/EVIDENCE_BUNDLE.md)
 
 Use the GitHub issue chooser after that:
@@ -11,7 +11,7 @@ Use the GitHub issue chooser after that:
 - usage questions: open the closest issue template
 - bug reports: open a tight reproduction with exact inputs
 - feature proposals: describe the operator problem and the expected outcome
-- workflow hardening help: start with [docs/WORKFLOW_HARDENING.md](docs/WORKFLOW_HARDENING.md) and then open the [workflow intake request](https://github.com/shleder/toolwall/issues/new?template=guided-setup-request.yml)
+- workflow hardening help: start with [docs/QUICKSTART.md](docs/QUICKSTART.md) and then open the [workflow intake request](https://github.com/shleder/toolwall/issues/new?template=guided-setup-request.yml)
 - security-sensitive findings: use `SECURITY.md` instead of posting exploit detail in an issue
 
 Useful context for any report or setup request:

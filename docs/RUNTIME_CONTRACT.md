@@ -5,9 +5,9 @@ This page describes the expected runtime behavior of `toolwall` for local operat
 Supported entry points:
 
 ```bash
-npx -y toolwall
-npx -y toolwall --help
-npm install -g toolwall
+npx -y @maksiph14/toolwall
+npx -y @maksiph14/toolwall --help
+npm install -g @maksiph14/toolwall
 ```
 
 Recommended order:

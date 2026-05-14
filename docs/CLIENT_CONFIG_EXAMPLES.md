@@ -1,6 +1,6 @@
 ## Client Config Examples
 
-The package and CLI name on this page are `toolwall`.
+The package name is `@maksiph14/toolwall`. The CLI binary name is `toolwall`.
 
 Use this page when wiring `toolwall` into a local MCP setup.
 The default path is the protected downstream proxy for one local filesystem/search-style workflow.
@@ -15,12 +15,13 @@ Use this when you already have an MCP server and want the firewall in front of i
   "mcpServers": {
     "protected-local-tooling": {
       "command": "npx",
-      "args": ["-y", "toolwall"],
-      "env": {
-        "PROXY_AUTH_TOKEN": "replace-with-32-byte-secret",
-        "MCP_TARGET_COMMAND": "node",
-        "MCP_TARGET_ARGS_JSON": "[\"C:/absolute/path/to/your-mcp-server.js\"]"
-      }
+      "args": [
+        "-y",
+        "@maksiph14/toolwall",
+        "--",
+        "node",
+        "C:/absolute/path/to/your-mcp-server.js"
+      ]
     }
   }
 }
@@ -28,7 +29,8 @@ Use this when you already have an MCP server and want the firewall in front of i
 
 Target input notes:
 
-- prefer `MCP_TARGET_COMMAND` plus `MCP_TARGET_ARGS_JSON`
+- prefer `npx -y @maksiph14/toolwall -- <target-command> <target-args>` in client configs
+- use `MCP_TARGET_COMMAND` plus `MCP_TARGET_ARGS_JSON` when the client cannot pass arguments after `--`
 - use `MCP_TARGET_ARGS` only when JSON array args are not available
 - use `MCP_TARGET` only as a full-command fallback
 - set `MCP_TARGET_TIMEOUT_MS` when you need a downstream timeout other than the default `30000`
@@ -40,10 +42,7 @@ If `PROXY_AUTH_TOKEN` is configured, client requests must carry `_meta.authoriza
 Use this when you want the smallest reproducible protected workflow backed by the repo-local demo target.
 
 ```powershell
-$env:PROXY_AUTH_TOKEN = "12345678901234567890123456789012"
-$env:MCP_TARGET_COMMAND = "node"
-$env:MCP_TARGET_ARGS_JSON = "[\"C:/absolute/path/to/toolwall/examples/demo-target.js\"]"
-npx --yes toolwall
+npx --yes @maksiph14/toolwall -- node C:/absolute/path/to/toolwall/examples/demo-target.js
 ```
 
 Example request shape:
@@ -84,7 +83,7 @@ Use this when you want the packaged status and launch-guidance tools without con
   "mcpServers": {
     "toolwall": {
       "command": "npx",
-      "args": ["-y", "toolwall"]
+      "args": ["-y", "@maksiph14/toolwall"]
     }
   }
 }
@@ -99,7 +98,7 @@ This path:
 ### Direct terminal and CLI flow
 
 ```bash
-npx --yes toolwall --help
-npx --yes toolwall
-npx --yes toolwall -- node C:/absolute/path/to/your-mcp-server.js
+npx --yes @maksiph14/toolwall --help
+npx --yes @maksiph14/toolwall
+npx --yes @maksiph14/toolwall -- node C:/absolute/path/to/your-mcp-server.js
 ```

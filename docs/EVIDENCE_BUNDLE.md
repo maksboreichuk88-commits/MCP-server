@@ -146,4 +146,3 @@ Expected benchmark boundary:
 - [Runtime Contract](RUNTIME_CONTRACT.md)
 - [Risk Model](RISK_MODEL.md)
 - [Limits and Non-Goals](LIMITS_AND_NON_GOALS.md)
-- [Verification Guide](VERIFICATION_GUIDE.md)
