@@ -4,9 +4,9 @@ import { startAdminServer } from './admin/index.js';
 import { getCache, initializeCache } from './cache/index.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { astEgressFilter } from './middleware/ast-egress-filter.js';
-import { createRateLimiter } from './middleware/rate-limiter.js';
+import { createRateLimiter, resolveRateLimitConfig } from './middleware/rate-limiter.js';
 import { recordHttpMcpRequest } from './metrics/prometheus.js';
-import { routeRequest } from './proxy/router.js';
+import { getRegisteredRoutes, routeRequest } from './proxy/router.js';
 import { sanitizeResponse } from './proxy/shadow-leak-sanitizer.js';
 import { auditLog } from './utils/auditLogger.js';
 import { getPrimaryToolInvocation } from './utils/mcp-request.js';
@@ -21,8 +21,8 @@ const app = express();
 app.use(express.json({ strict: true, limit: '1mb' }));
 
 const rateLimiter = createRateLimiter({
-  windowMs: 60000,
-  maxRequests: 100,
+  ...resolveRateLimitConfig(),
+  targetResolver: (_req, toolName) => toolName ? getRegisteredRoutes().get(toolName)?.url : undefined,
 });
 
 app.use('/mcp', rateLimiter);

@@ -9,9 +9,9 @@ import { parseCliArgs, resolveTarget } from './cli-options.js';
 import { startEmbeddedMcpServer } from './embedded/server.js';
 import { astEgressFilter } from './middleware/ast-egress-filter.js';
 import { errorHandler } from './middleware/error-handler.js';
-import { createRateLimiter } from './middleware/rate-limiter.js';
+import { createRateLimiter, resolveRateLimitConfig } from './middleware/rate-limiter.js';
 import { recordHttpMcpRequest } from './metrics/prometheus.js';
-import { routeRequest } from './proxy/router.js';
+import { getRegisteredRoutes, routeRequest } from './proxy/router.js';
 import { sanitizeResponse } from './proxy/shadow-leak-sanitizer.js';
 import { resolveProxyRuntimeConfig } from './runtime-config.js';
 import { createStdioFirewallProxy } from './stdio/proxy.js';
@@ -69,8 +69,8 @@ const startGateway = async (configPath: string): Promise<void> => {
 
   const app = express();
   const rateLimiter = createRateLimiter({
-    windowMs: 60000,
-    maxRequests: 100,
+    ...resolveRateLimitConfig(),
+    targetResolver: (_req, toolName) => toolName ? getRegisteredRoutes().get(toolName)?.url : undefined,
   });
 
   app.use(express.json({ strict: true, limit: '1mb' }));
@@ -169,6 +169,7 @@ const main = async (): Promise<void> => {
     targetTimeoutMs: runtimeConfig.targetTimeoutMs,
     verbose: cli.verbose || process.env.MCP_VERBOSE === 'true' || process.env.VERBOSE === 'true',
     proxyAuthToken: process.env.PROXY_AUTH_TOKEN,
+    rateLimit: resolveRateLimitConfig(),
   });
 
   const shutdown = async (): Promise<void> => {

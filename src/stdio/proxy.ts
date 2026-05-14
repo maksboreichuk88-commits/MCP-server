@@ -8,6 +8,7 @@ import { EpistemicSecurityException, TrustGateError } from '../errors.js';
 import { validateAstEgress } from '../middleware/ast-egress-filter.js';
 import { parseNhiAuthorizationHeader } from '../middleware/nhi-auth-validator.js';
 import { validatePreflight } from '../middleware/preflight-validator.js';
+import { checkRateLimit, resolveRateLimitConfig, type RateLimitConfig } from '../middleware/rate-limiter.js';
 import { validateScopes } from '../middleware/scope-validator.js';
 import { sanitizeResponse } from '../proxy/shadow-leak-sanitizer.js';
 import { auditLog } from '../utils/auditLogger.js';
@@ -63,6 +64,7 @@ export interface StdioFirewallOptions {
   proxyAuthToken?: string;
   alwaysCacheTools?: string[];
   neverCacheTools?: string[];
+  rateLimit?: Pick<RateLimitConfig, 'windowMs' | 'maxRequests'>;
 }
 
 export interface StdioFirewallProxy {
@@ -158,6 +160,7 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
 
   const pendingRequests = new Map<string, PendingRequest>();
   const targetTimeoutMs = options.targetTimeoutMs ?? DEFAULT_TARGET_TIMEOUT_MS;
+  const rateLimitConfig = options.rateLimit ?? resolveRateLimitConfig(options.env);
 
   const serverId = options.serverId ?? `${options.targetCommand} ${options.targetArgs.join(' ')}`.trim();
   const cacheManager = initializeCache({
@@ -284,6 +287,25 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
     }
 
     if (message.method === 'tools/call' && tool?.name) {
+      const rateLimitDecision = checkRateLimit({
+        transport: 'stdio',
+        identity: 'local-client',
+        targetId: serverId,
+        toolName: tool.name,
+        path: 'stdio',
+        snippet: createSnippet(message),
+      }, rateLimitConfig);
+
+      if (!rateLimitDecision.allowed) {
+        writeRawJson(buildRpcErrorResponse(requestId, -32029, 'Fail-Closed: too many requests for this target/tool.', {
+          code: 'RATE_LIMIT_EXCEEDED',
+          retryAfter: rateLimitDecision.resetInSeconds,
+          limit: rateLimitDecision.limit,
+          remaining: rateLimitDecision.remaining,
+        }));
+        return;
+      }
+
       if (requestId !== null) {
         const cached = cacheManager.get(tool.name, tool.arguments ?? {});
         if (cached !== undefined) {

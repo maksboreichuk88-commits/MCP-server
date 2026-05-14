@@ -6,15 +6,15 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --ignore-scripts
 
+COPY ui/package*.json ./ui/
+RUN npm --prefix ui ci --ignore-scripts
+
 COPY tsconfig.json ./
 COPY src/ ./src/
 RUN npm run build
 
-COPY ui/package*.json ./ui/
-RUN cd ui && npm ci --ignore-scripts
-
 COPY ui/ ./ui/
-RUN cd ui && npm run build
+RUN npm --prefix ui run build
 
 FROM node:20-alpine AS runner
 
@@ -32,12 +32,13 @@ COPY scripts/ ./scripts/
 COPY docs/ ./docs/
 
 ENV NODE_ENV=production
+ENV MCP_CACHE_DIR=/data/.mcp-cache
 
 EXPOSE 3000
 EXPOSE 9090
 
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/index.js"]
+CMD ["npm", "start"]
 
 LABEL org.opencontainers.image.title="Toolwall" \
       org.opencontainers.image.description="Fail-closed stdio firewall for MCP tool traffic with an HTTP review harness" \
