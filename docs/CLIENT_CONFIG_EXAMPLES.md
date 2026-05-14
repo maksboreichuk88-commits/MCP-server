@@ -82,7 +82,7 @@ Use this when you want the packaged status and launch-guidance tools without con
 ```json
 {
   "mcpServers": {
-    "transport-firewall": {
+    "toolwall": {
       "command": "npx",
       "args": ["-y", "toolwall"]
     }

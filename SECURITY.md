@@ -11,7 +11,7 @@ The most relevant findings here are:
 - replay or preflight bypass
 - data exfiltration bypass
 - response sanitization bypass
-- any failure that lets unsafe traffic reach the stdio target or HTTP companion service
+- any failure that lets unsafe traffic reach the stdio target or HTTP gateway
 
 Include:
 

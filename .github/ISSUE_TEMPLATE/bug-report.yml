@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible defect in the stdio firewall, HTTP companion service, admin plane, or dashboard.
+description: Report a reproducible defect in Toolwall runtime, packaging, or documentation.
 title: "[bug] "
 labels:
   - bug
@@ -10,10 +10,13 @@ body:
       label: Affected surface
       options:
         - stdio firewall
-        - HTTP companion service
+        - HTTP gateway
+        - rate limiting
         - admin API
         - dashboard
+        - Docker / container runtime
         - CI / release packaging
+        - documentation
     validations:
       required: true
   - type: textarea

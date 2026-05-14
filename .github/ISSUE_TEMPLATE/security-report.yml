@@ -1,5 +1,5 @@
 name: Security report
-description: Report a private security issue.
+description: Report a private security issue in Toolwall.
 title: "[security] "
 labels:
   - security
@@ -17,9 +17,13 @@ body:
       label: Affected surface
       options:
         - stdio firewall
-        - HTTP companion service
+        - HTTP gateway
+        - AST egress filter
+        - rate limiting
+        - SQLite audit history
         - admin API
         - dashboard
+        - Docker / container runtime
     validations:
       required: true
   - type: textarea

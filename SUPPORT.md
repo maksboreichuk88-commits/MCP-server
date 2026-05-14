@@ -19,7 +19,7 @@ Useful context for any report or setup request:
 - operating system
 - Node.js version
 - exact command used
-- whether you used the stdio runtime, HTTP companion service, or Docker path
+- whether you used the stdio runtime, HTTP gateway, or Docker path
 - expected behavior
 - actual behavior
 - sanitized logs, screenshots, or config fragments

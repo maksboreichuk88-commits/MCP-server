@@ -121,7 +121,7 @@ Observed denial surfaces include:
 | `MCP_ADMIN_ENABLED` | stdio + HTTP | enables admin API and dashboard |
 | `MCP_ADMIN_PORT` | stdio + HTTP | admin API port |
 | `ADMIN_TOKEN` | admin | protects admin mutation endpoints |
-| `MCP_PORT` | HTTP | HTTP companion port |
+| `MCP_PORT` | HTTP | HTTP gateway port |
 
 ## Notes
 

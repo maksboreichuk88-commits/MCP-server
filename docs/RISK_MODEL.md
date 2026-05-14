@@ -14,7 +14,7 @@ The primary protected boundary is **stdio** between:
 - an MCP client or agent runtime emitting JSON-RPC messages
 - a local MCP tool server receiving those messages
 
-The repository also ships an HTTP companion harness that reuses the same trust gates, but the stdio runtime is the main path.
+The repository also ships an HTTP gateway that reuses the same trust gates, but the stdio runtime is the main path.
 
 Protected assets:
 
