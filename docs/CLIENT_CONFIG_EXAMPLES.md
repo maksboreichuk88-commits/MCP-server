@@ -1,14 +1,11 @@
-## Client Config Examples
+# Client Config Examples
 
-The package name is `@maksiph14/toolwall`. The CLI binary name is `toolwall`.
+- Package: `@maksiph14/toolwall`
+- CLI binary: `toolwall`
 
-Use this page when wiring `toolwall` into a local MCP setup.
-The default path is the protected downstream proxy for one local filesystem/search-style workflow.
-The main fit is one protected local filesystem/search workflow over `stdio`.
+Use stdio proxy mode when an MCP client should launch Toolwall and Toolwall should launch the downstream MCP server.
 
-## Canonical protected downstream config
-
-Use this when you already have an MCP server and want the firewall in front of it.
+## Canonical downstream proxy
 
 ```json
 {
@@ -27,19 +24,42 @@ Use this when you already have an MCP server and want the firewall in front of i
 }
 ```
 
-Target input notes:
+Target rules:
 
-- prefer `npx -y @maksiph14/toolwall -- <target-command> <target-args>` in client configs
-- use `MCP_TARGET_COMMAND` plus `MCP_TARGET_ARGS_JSON` when the client cannot pass arguments after `--`
-- use `MCP_TARGET_ARGS` only when JSON array args are not available
-- use `MCP_TARGET` only as a full-command fallback
-- set `MCP_TARGET_TIMEOUT_MS` when you need a downstream timeout other than the default `30000`
+- prefer `npx -y @maksiph14/toolwall -- <target-command> <target-args>`
+- use `--` to separate Toolwall arguments from downstream target arguments
+- set `MCP_TARGET_TIMEOUT_MS` to override the default `30000` ms response timeout
 
-If `PROXY_AUTH_TOKEN` is configured, client requests must carry `_meta.authorization` in the request body. See `scripts/stdio-demo.mjs` for a concrete Bearer envelope example.
+If `PROXY_AUTH_TOKEN` is configured, each protected `tools/call` request must carry `_meta.authorization`.
 
-## Proof-only demo target
+## Environment target fallback
 
-Use this when you want the smallest reproducible protected workflow backed by the repo-local demo target.
+Use this when the client cannot pass target arguments after `--`.
+
+```json
+{
+  "mcpServers": {
+    "protected-local-tooling": {
+      "command": "npx",
+      "args": ["-y", "@maksiph14/toolwall"],
+      "env": {
+        "MCP_TARGET_COMMAND": "node",
+        "MCP_TARGET_ARGS_JSON": "[\"C:/absolute/path/to/your-mcp-server.js\"]"
+      }
+    }
+  }
+}
+```
+
+Fallback order:
+
+1. `MCP_TARGET_COMMAND` plus `MCP_TARGET_ARGS_JSON`
+2. `MCP_TARGET_COMMAND` plus `MCP_TARGET_ARGS`
+3. `MCP_TARGET`
+
+## Demo target
+
+Use the repo-local target for a minimal reproducible check.
 
 ```powershell
 npx --yes @maksiph14/toolwall -- node C:/absolute/path/to/toolwall/examples/demo-target.js
@@ -64,19 +84,24 @@ Example request shape:
 }
 ```
 
-This is a demo path for proof and regression testing, not a full filesystem MCP server.
+The demo target is not a full filesystem MCP server.
 
-High-trust note:
+## High-trust tools
 
-- `execute_command`, `fetch_url`, `write_file`, `write`, and `create_file` are treated as high-trust tool families by default
-- they require a valid `preflightId` even when the caller does not mark `_meta.color` as `blue`
-- the short demo path intentionally sticks to safe `search_files`; use the benchmark corpus for the blocked high-trust path
+These default tool families require a valid `preflightId`:
 
-## Secondary paths
+- `execute_command`
+- `execute`
+- `fetch_url`
+- `write_file`
+- `write`
+- `create_file`
 
-### Embedded fallback path
+The demo path uses `search_files` to avoid preflight setup.
 
-Use this when you want the packaged status and launch-guidance tools without configuring another downstream target.
+## Embedded fallback
+
+Use this only for packaged status and launch-guidance tools.
 
 ```json
 {
@@ -89,13 +114,7 @@ Use this when you want the packaged status and launch-guidance tools without con
 }
 ```
 
-This path:
-
-- launches the normal CLI entrypoint
-- falls back to the bundled `--embedded-target` path when no downstream target is configured
-- exposes runtime status and launch guidance tools without another target command
-
-### Direct terminal and CLI flow
+## CLI checks
 
 ```bash
 npx --yes @maksiph14/toolwall --help

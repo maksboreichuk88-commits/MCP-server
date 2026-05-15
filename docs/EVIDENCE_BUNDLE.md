@@ -1,6 +1,6 @@
 # Evidence Bundle
 
-This document is the compact audit entry point for Toolwall security behavior.
+This document is the compact audit entry point for checked-in Toolwall behavior.
 
 Scope:
 
@@ -11,6 +11,7 @@ Scope:
 - color-boundary and preflight checks for high-trust tools
 - SQLite-backed cache and security event history
 - structured audit events for blocked requests
+- bounded rate-limit, sanitizer, audit-log, and stdio request state
 
 Non-goal:
 
@@ -101,6 +102,28 @@ Rate limiting is isolated by transport, identity, target, and tool. A limit brea
 
 Each breach writes a `RATE_LIMIT_EXCEEDED` audit event.
 
+Current in-memory rate-limit state is bounded by:
+
+- `MCP_RATE_LIMIT_MAX_KEYS`, default `10000`
+- `MCP_RATE_LIMIT_MAX_KEY_LENGTH`, default `512`
+- `MCP_RATE_LIMIT_CLEANUP_INTERVAL_MS`, default `60000`
+
+### Resource limits
+
+Current checked-in limits include:
+
+| Limit | Default |
+|---|---:|
+| HTTP JSON body | `1048576` bytes |
+| stdio pending requests | `1000` |
+| stdio JSON line | `10485760` bytes |
+| stdio serialized response | `5242880` bytes |
+| HTTP target response | `5242880` bytes |
+| sanitizer depth | `20` |
+| sanitizer array items | `1000` |
+| sanitizer object keys | `1000` |
+| sanitizer regex string input | `1048576` bytes |
+
 ## Audit and persistence
 
 Blocked requests are recorded through `auditLogger` with a concrete `code`.
@@ -113,6 +136,25 @@ Recorded security events are available through:
 - dashboard `securityEvents`
 
 The Docker Compose service mounts `toolwall-data:/data`; SQLite history under `/data/.mcp-cache` survives container restarts.
+
+Security-log rows are bounded by TTL and max-row pruning. Audit file writes are bounded by serialized entry size and backpressure handling.
+
+## Error shape evidence
+
+Stdio failures return JSON-RPC 2.0 errors. HTTP `/mcp` failures also return JSON-RPC 2.0 when the request body is JSON-RPC-like:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "route-miss-1",
+  "error": {
+    "code": -32004,
+    "data": {
+      "code": "UNKNOWN_ROUTE"
+    }
+  }
+}
+```
 
 ## Reproduction commands
 

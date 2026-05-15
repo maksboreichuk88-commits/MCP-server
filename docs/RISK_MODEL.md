@@ -41,6 +41,9 @@ This includes indirect prompt-injection traffic only to the extent that it appea
 | `ast-egress-filter` | Do request strings match exfiltration, sensitive-path, shell-injection, or epistemic-risk markers? | deny request |
 | `preflight-validator` | Does an explicit or default high-trust action carry a valid one-time preflight ID? | deny request |
 | `schema-validator` | Do registered tool arguments match a strict contract? | deny request |
+| `rate-limiter` | Has this transport/identity/target/tool exceeded configured request limits? | deny request |
+| `stdio/proxy` | Are pending requests, JSON lines, and serialized responses inside configured bounds? | deny request or fail pending requests |
+| `shadow-leak-sanitizer` | Can returned payloads be traversed within configured depth/key/item/string limits? | truncate bounded traversal, redact, or fail size checks |
 
 All gates fail closed. If validation cannot be completed, the request is rejected instead of forwarded.
 
@@ -55,6 +58,9 @@ All gates fail closed. If validation cannot be completed, the request is rejecte
 | sensitive-path access markers | `ast-egress-filter` | `tests/ast-egress-filter.test.ts`, `examples/evidence-corpus.json` |
 | shell-injection markers in tool arguments | `ast-egress-filter` | `tests/ast-egress-filter.test.ts`, `examples/evidence-corpus.json` |
 | unsafe response material flowing back to the caller | response sanitization, including narrow bearer-header and inline secret-assignment redaction in downstream strings | `src/proxy/shadow-leak-sanitizer.ts` |
+| per target/tool request flooding | bounded `rate-limiter` state and `RATE_LIMIT_EXCEEDED` denial | `tests/rate-limiter.test.ts` |
+| oversized stdio response payloads | pre-sanitization OOM guard and JSON-RPC error `-32005` | `tests/cli.test.ts` |
+| recursive/cyclic target response objects | bounded sanitizer traversal with cycle detection | `tests/shadow-leak-sanitizer.test.ts` |
 
 The strict registry currently covers these contract families and aliases:
 
@@ -78,6 +84,8 @@ What the repo currently demonstrates:
 - allowed read-style tool calls can be served from cache
 - downstream responses are sanitized before returning to the caller, with current response-side protection covering sensitive keyed fields plus narrow plain-text bearer-header and inline secret-assignment redaction
 - the control plane exposes route, cache, preflight, circuit-breaker, blocked-request, and Prometheus-formatted metrics
+- HTTP `/mcp` returns JSON-RPC error envelopes for JSON-RPC-like failure requests
+- audit/security-log writes are bounded and fail request handling closed only at the request boundary, not on log persistence errors
 
 What it does not claim:
 

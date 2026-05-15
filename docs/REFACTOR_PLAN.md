@@ -1,10 +1,10 @@
 # Refactor Plan
 
-This document tracks the five-phase cleanup and stabilization plan for Toolwall after the v2.2.8 release boundary.
+This document tracks the five-phase cleanup and stabilization plan after the v2.2.8 release boundary.
 
 ## Phase 1: Dead Code & Artifact Purge
 
-Status: in progress.
+Status: completed.
 
 Scope:
 
@@ -16,6 +16,8 @@ Scope:
 
 ## Phase 2: Infrastructure & Tooling
 
+Status: completed.
+
 Scope:
 
 - tighten package scripts and release checks
@@ -25,14 +27,18 @@ Scope:
 
 ## Phase 3: Core Architecture & Security
 
+Status: completed.
+
 Scope:
 
 - review transport boundaries
 - review trust-gate composition
-- reduce duplicated runtime logic only where behavior is fully covered by tests
+- harden bounded runtime state, SQLite/security logs, stdio proxy failures, JSON-RPC error boundaries, and sanitizer traversal
 - preserve fail-closed behavior
 
 ## Phase 4: Documentation
+
+Status: completed in this phase.
 
 Scope:
 
@@ -41,6 +47,8 @@ Scope:
 - remove stale references introduced by prior refactors
 
 ## Phase 5: QA & Validation
+
+Status: pending.
 
 Scope:
 

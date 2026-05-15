@@ -1,32 +1,27 @@
 # Quickstart
 
-Updated: 2026-04-06
+Updated: 2026-05-15
 
-Use this page when you want the shortest path from clone to a real local proof.
-
-This quickstart is intentionally narrow:
-- one local filesystem/search-style downstream target
-- one protected `stdio` boundary
-- one repo-local proof command sequence
+Use this path to prove the stdio boundary with the repo-local demo target.
 
 Prerequisites:
 
 - Node.js `>=20.0.0`
 - npm
 
-## Step 1. Install Dependencies
+## 1. Install dependencies
 
 ```bash
-npm install
+npm ci
 ```
 
-## Step 2. Build The Current Tree
+## 2. Build
 
 ```bash
 npm run build
 ```
 
-## Step 3. Run The Flagship Proof Path
+## 3. Run the stdio demo
 
 ```bash
 npm run demo:stdio
@@ -42,16 +37,16 @@ block: ShadowLeak request denied with code=SHADOWLEAK_DETECTED
 block: missing auth denied with code=AUTH_FAILURE
 ```
 
-What this proves:
+The demo verifies:
 
 - safe `search_files` traffic reaches the downstream target
-- repeated allow traffic can be cached without changing the answer
+- repeated allow traffic can be served from cache
 - exfiltration-shaped `fetch_url` traffic is denied before downstream execution
-- missing-auth traffic is denied at the transport boundary
+- missing-auth traffic fails closed
 
-## Step 4. Wire A Real Downstream Target
+## 4. Wire a real downstream target
 
-After the demo path passes, switch from the repo demo target to your own local MCP server:
+Replace the target command after `--` with your MCP server:
 
 ```json
 {
@@ -71,29 +66,43 @@ After the demo path passes, switch from the repo demo target to your own local M
 ```
 
 Use:
+
 - `npx -y @maksiph14/toolwall` as the Toolwall package entry point
 - `--` to separate Toolwall arguments from the downstream MCP target command
-- `node C:/absolute/path/to/your-mcp-server.js` as the target command to replace
+- `node C:/absolute/path/to/your-mcp-server.js` as the downstream target placeholder
 
 Set `PROXY_AUTH_TOKEN` only when the agent can also send `_meta.authorization` in each protected `tools/call` request.
 
 For more examples, see [CLIENT_CONFIG_EXAMPLES.md](CLIENT_CONFIG_EXAMPLES.md).
 
-## Step 5. Run The Deeper Local Checks
+## 5. Docker path
 
-If the short proof path looks correct, run the deeper local verification chain:
+Docker starts the HTTP gateway and admin/dashboard surfaces.
+
+```bash
+docker compose up -d --build toolwall
+curl -fsS http://localhost:3000/health
+curl -fsS http://localhost:9090/api/stats
+docker compose down
+```
+
+Docker Compose requires `PROXY_AUTH_TOKEN` and `ADMIN_TOKEN` in `.env`.
+
+## 6. Run local validation
 
 ```bash
 npm run typecheck
+npm run build
 npm run assert:package-metadata
 npm test
+npm run demo:stdio
 npm run pack:dry-run
 npm run pack:smoke
 ```
 
-For the compact proof pack, use [EVIDENCE_BUNDLE.md](EVIDENCE_BUNDLE.md).
+Use `npm run verify:all` for the full local chain, including UI build and lint.
 
-## Step 6. What This Quickstart Does Not Prove
+## Scope
 
 This quickstart does not prove:
 
@@ -102,4 +111,4 @@ This quickstart does not prove:
 - complete semantic prompt-injection prevention
 - post-execution containment after a tool has already started
 
-Those boundaries are intentional. See [LIMITS_AND_NON_GOALS.md](LIMITS_AND_NON_GOALS.md).
+See [LIMITS_AND_NON_GOALS.md](LIMITS_AND_NON_GOALS.md).
