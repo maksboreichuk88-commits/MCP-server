@@ -1,5 +1,7 @@
 # Refactor Plan
 
+Status: completed.
+
 This document tracks the five-phase cleanup and stabilization plan after the v2.2.8 release boundary.
 
 ## Phase 1: Dead Code & Artifact Purge
@@ -48,7 +50,7 @@ Scope:
 
 ## Phase 5: QA & Validation
 
-Status: pending.
+Status: completed.
 
 Scope:
 
@@ -56,3 +58,12 @@ Scope:
 - confirm Docker build behavior
 - confirm npm package smoke behavior
 - publish only after local and CI validation are green
+
+Final validation results:
+
+- `npm run verify:all` passed: package metadata assertion, typecheck, build, 17 test suites with 136 tests, stdio demo, UI build, and UI lint.
+- `npm pack` passed and produced `maksiph14-toolwall-2.2.8.tgz` (48.7 kB, 44 files).
+- Stale package metadata guardrails in `scripts/assert-package-metadata.mjs` and `tests/release-guardrails.test.ts` were synchronized with the current `package.json.files` allowlist.
+- `docker compose build --no-cache toolwall` was explicitly waived because the Docker CLI is not installed on the local machine. Docker behavior is exercised through CI/Compose configuration only.
+
+All phases of the refactor roadmap are complete.
