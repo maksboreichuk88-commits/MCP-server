@@ -4,6 +4,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { z } from 'zod';
 import { splitCommandString } from './cli-options.js';
 import { registerRoute } from './proxy/router.js';
+import { SECURITY_DEFAULTS } from './security-constants.js';
 import { auditLog } from './utils/auditLogger.js';
 
 const GatewayTargetSchema = z.object({
@@ -140,7 +141,7 @@ export const startGatewayTargets = (targets: GatewayTargetConfig[]): RunningGate
 
     registerRoute(target.name, {
       url: `http://localhost:${target.port}/mcp`,
-      timeoutMs: target.timeoutMs ?? 5000,
+      timeoutMs: target.timeoutMs ?? SECURITY_DEFAULTS.routeDefaultTimeoutMs,
       headers: target.headers,
     });
     updateGatewayTargetStatus(target, 'online');

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { TrustGateError } from '../errors.js';
 import { writeAuditLog, auditLogWithSIEM } from '../utils/auditLogger.js';
+import { buildHttpErrorBody } from '../utils/json-rpc.js';
 import { extractAuthorizationFromBody } from '../utils/mcp-request.js';
 
 const ServerTokenSchema = z.string()
@@ -81,11 +82,22 @@ export const nhiAuthValidator = (req: Request, res: Response, next: NextFunction
     next();
   } catch (error: unknown) {
     if (error instanceof TrustGateError) {
-      res.status(error.status).json({ error: { code: error.code, message: error.message } });
+      res.status(error.status).json(buildHttpErrorBody(
+        req.body,
+        error.code,
+        error.message,
+        -32001,
+        error.details,
+      ));
       return;
     }
 
     auditLogWithSIEM('AUTH_FAILURE', { reason: 'Unexpected NHI validation error', ip: req.ip });
-    res.status(401).json({ error: { code: 'AUTH_FAILURE', message: 'Authentication validation failed.' } });
+    res.status(401).json(buildHttpErrorBody(
+      req.body,
+      'AUTH_FAILURE',
+      'Authentication validation failed.',
+      -32001,
+    ));
   }
 };

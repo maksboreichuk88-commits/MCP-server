@@ -10,6 +10,7 @@ import { configureTenantRateLimit, getRateLimitStats, removeTenantRateLimit } fr
 import { getAllCircuitBreakerStats } from '../proxy/circuit-breaker.js';
 import { clearRoutes, getRegisteredRoutes, registerRoute, removeRoute } from '../proxy/router.js';
 import { getGatewayTargetStatuses } from '../gateway-config.js';
+import { resolveHttpJsonLimit, SECURITY_DEFAULTS } from '../security-constants.js';
 import { auditLog, clearSecurityEvents, getBlockedRequestMetrics, getRecentSecurityEvents } from '../utils/auditLogger.js';
 
 const executableDir = typeof process !== 'undefined' && 'isBun' in process && process.isBun ? path.dirname(process.execPath) : process.cwd();
@@ -47,7 +48,7 @@ const CacheConfigSchema = z.object({
 const RouteConfigSchema = z.object({
   toolName: z.string().min(1),
   url: z.string().url(),
-  timeoutMs: z.number().int().min(100).max(30000).default(5000),
+  timeoutMs: z.number().int().min(100).max(30000).default(SECURITY_DEFAULTS.routeDefaultTimeoutMs),
   headers: z.record(z.string()).optional(),
 });
 
@@ -332,7 +333,7 @@ export const startAdminServer = (port: number = 9090): Server => {
 
   const app = express();
   app.use(adminCorsMiddleware);
-  app.use(express.json());
+  app.use(express.json({ limit: resolveHttpJsonLimit() }));
   app.use(createAdminRouter());
 
   if (fs.existsSync(adminUiPath)) {

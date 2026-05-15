@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { TrustGateError } from '../errors.js';
 import { auditLogWithSIEM } from '../utils/auditLogger.js';
+import { buildHttpErrorBody } from '../utils/json-rpc.js';
 import { extractToolInvocations } from '../utils/mcp-request.js';
 
 export const validateScopes = (
@@ -41,20 +42,21 @@ export const scopeValidator = (req: Request, res: Response, next: NextFunction):
     next();
   } catch (error: unknown) {
     if (error instanceof TrustGateError) {
-      res.status(error.status).json({
-        error: {
-          code: error.code,
-          message: error.message,
-        },
-      });
+      res.status(error.status).json(buildHttpErrorBody(
+        req.body,
+        error.code,
+        error.message,
+        -32003,
+        error.details,
+      ));
       return;
     }
 
-    res.status(403).json({
-      error: {
-        code: 'MISSING_SCOPE',
-        message: 'Fail-Closed: scope validation failed.',
-      },
-    });
+    res.status(403).json(buildHttpErrorBody(
+      req.body,
+      'MISSING_SCOPE',
+      'Fail-Closed: scope validation failed.',
+      -32003,
+    ));
   }
 };

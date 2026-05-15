@@ -73,4 +73,23 @@ describe('rate limiter', () => {
       maxRequests: 50,
     });
   });
+
+  it('bounds the in-memory key store by evicting the oldest key', () => {
+    const config = {
+      windowMs: 60000,
+      maxRequests: 1,
+      maxKeys: 2,
+      cleanupIntervalMs: 60000,
+      maxKeyLength: 128,
+    };
+
+    expect(checkRateLimit({ key: 'client-a', transport: 'http' }, config).allowed).toBe(true);
+    expect(checkRateLimit({ key: 'client-b', transport: 'http' }, config).allowed).toBe(true);
+    expect(checkRateLimit({ key: 'client-c', transport: 'http' }, config).allowed).toBe(true);
+
+    const clientAAfterEviction = checkRateLimit({ key: 'client-a', transport: 'http' }, config);
+
+    expect(clientAAfterEviction.allowed).toBe(true);
+    expect(clientAAfterEviction.count).toBe(1);
+  });
 });

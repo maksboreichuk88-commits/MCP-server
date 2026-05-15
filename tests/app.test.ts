@@ -212,6 +212,33 @@ describe('app /mcp integration', () => {
     expect(response.body.error.code).toBe('UNKNOWN_ROUTE');
   });
 
+  it('returns a JSON-RPC error envelope for JSON-RPC fail-closed route misses', async () => {
+    const response = await request(app)
+      .post('/mcp')
+      .set('Authorization', createAuthHeader(['tools.search_files']))
+      .send({
+        jsonrpc: '2.0',
+        id: 'route-miss-1',
+        method: 'tools/call',
+        params: {
+          name: 'search_files',
+          arguments: { query: 'hello' },
+        },
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        jsonrpc: '2.0',
+        id: 'route-miss-1',
+        error: expect.objectContaining({
+          code: -32004,
+          data: expect.objectContaining({ code: 'UNKNOWN_ROUTE' }),
+        }),
+      }),
+    );
+  });
+
   it('routes a common alias contract through the HTTP compatibility harness', async () => {
     registerRoute('list_files', {
       url: `${targetBaseUrl}/tools/list_files`,

@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { CircuitOpenError, getOrCreateCircuitBreaker } from './circuit-breaker.js';
 import { RouteRegistryStateSchema, RouteResult, TargetServerConfig, TargetServerConfigSchema } from './types.js';
+import { SECURITY_DEFAULTS } from '../security-constants.js';
+import { buildHttpErrorBody } from '../utils/json-rpc.js';
 
 const ROUTE_REGISTRY_STATE_FILENAME = 'route-registry.json';
 
@@ -113,12 +115,12 @@ export const routeRequest = async (
     });
     return {
       status: 403,
-      body: {
-        error: {
-          code: 'UNKNOWN_ROUTE',
-          message: `Fail-Closed: tool "${toolName}" has no registered target server.`,
-        },
-      },
+      body: buildHttpErrorBody(
+        payload,
+        'UNKNOWN_ROUTE',
+        `Fail-Closed: tool "${toolName}" has no registered target server.`,
+        -32004,
+      ),
       targetUrl: '',
       latencyMs: 0,
     };
@@ -127,9 +129,9 @@ export const routeRequest = async (
   const startTime = Date.now();
   const circuitBreaker = getOrCreateCircuitBreaker({
     name: `route:${toolName}`,
-    failureThreshold: 5,
-    resetTimeoutMs: 30000,
-    halfOpenMaxCalls: 1,
+    failureThreshold: SECURITY_DEFAULTS.circuitFailureThreshold,
+    resetTimeoutMs: SECURITY_DEFAULTS.circuitResetTimeoutMs,
+    halfOpenMaxCalls: SECURITY_DEFAULTS.circuitHalfOpenMaxCalls,
   });
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
@@ -150,6 +152,21 @@ export const routeRequest = async (
       });
 
       const rawBody = await response.text();
+      if (Buffer.byteLength(rawBody, 'utf8') > SECURITY_DEFAULTS.targetResponseMaxBytes) {
+        return {
+          response: {
+            status: 502,
+          },
+          body: buildHttpErrorBody(
+            payload,
+            'TARGET_RESPONSE_TOO_LARGE',
+            'Fail-Closed: target response exceeds maximum allowed size.',
+            -32005,
+            { limit: SECURITY_DEFAULTS.targetResponseMaxBytes },
+          ),
+        };
+      }
+
       let body: unknown = rawBody;
 
       if (rawBody.length > 0) {
@@ -181,12 +198,7 @@ export const routeRequest = async (
 
       return {
         status: 503,
-        body: {
-          error: {
-            code: 'CIRCUIT_OPEN',
-            message: error.message,
-          },
-        },
+        body: buildHttpErrorBody(payload, 'CIRCUIT_OPEN', error.message, -32004),
         targetUrl: target.url,
         latencyMs,
       };
@@ -200,12 +212,12 @@ export const routeRequest = async (
 
     return {
       status: 503,
-      body: {
-        error: {
-          code: 'TARGET_UNREACHABLE',
-          message: `Target server for tool "${toolName}" is unreachable.`,
-        },
-      },
+      body: buildHttpErrorBody(
+        payload,
+        'TARGET_UNREACHABLE',
+        `Target server for tool "${toolName}" is unreachable.`,
+        -32004,
+      ),
       targetUrl: target.url,
       latencyMs,
     };

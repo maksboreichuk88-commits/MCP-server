@@ -11,13 +11,11 @@ import { validatePreflight } from '../middleware/preflight-validator.js';
 import { checkRateLimit, resolveRateLimitConfig, type RateLimitConfig } from '../middleware/rate-limiter.js';
 import { validateScopes } from '../middleware/scope-validator.js';
 import { sanitizeResponse } from '../proxy/shadow-leak-sanitizer.js';
+import { parseIntEnv, resolveSnippetMaxLength, SECURITY_DEFAULTS } from '../security-constants.js';
 import { auditLog } from '../utils/auditLogger.js';
+import { buildJsonRpcErrorResponse, type JsonRpcId } from '../utils/json-rpc.js';
 import { extractAuthorizationFromBody, extractToolInvocations, getPrimaryToolInvocation, isRecord } from '../utils/mcp-request.js';
 
-const OOM_MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
-const DEFAULT_TARGET_TIMEOUT_MS = 30000;
-
-type JsonRpcId = string | number | null;
 type SessionColor = 'red' | 'blue' | null;
 
 interface JsonRpcRequest {
@@ -83,10 +81,6 @@ const isJsonRpcResponse = (value: unknown): value is JsonRpcResponse => {
     (Object.prototype.hasOwnProperty.call(value, 'result') || Object.prototype.hasOwnProperty.call(value, 'error'));
 };
 
-const buildRpcErrorResponse = (id: JsonRpcId, code: number, message: string, data?: unknown): JsonRpcResponse => ({
-  jsonrpc: '2.0', id, error: { code, message, ...(data !== undefined ? { data } : {}) },
-});
-
 const extractStdioAuthorization = (message: JsonRpcRequest): string | undefined => {
   const fromBody = extractAuthorizationFromBody(message as unknown as Record<string, unknown>);
   if (fromBody) return fromBody;
@@ -108,9 +102,9 @@ const parseStdioAuthScopes = (proxyAuthToken: string | undefined, message: JsonR
 const createSnippet = (message: JsonRpcRequest): string => {
   const tool = getPrimaryToolInvocation(message as unknown as Record<string, unknown>);
   try {
-    return JSON.stringify(tool?.arguments ?? message.params ?? {}).slice(0, 240);
+    return JSON.stringify(tool?.arguments ?? message.params ?? {}).slice(0, resolveSnippetMaxLength());
   } catch {
-    return String(tool?.name ?? message.method).slice(0, 240);
+    return String(tool?.name ?? message.method).slice(0, resolveSnippetMaxLength());
   }
 };
 
@@ -156,16 +150,32 @@ const getSecurityErrorMessage = (error: unknown): string => {
 export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
   const input: Readable = options.input ?? process.stdin;
   const output: Writable = options.output ?? process.stdout;
+  const errorOutput: Writable | undefined = options.errorOutput;
 
   const pendingRequests = new Map<string, PendingRequest>();
-  const targetTimeoutMs = options.targetTimeoutMs ?? DEFAULT_TARGET_TIMEOUT_MS;
+  const targetTimeoutMs = options.targetTimeoutMs ?? SECURITY_DEFAULTS.targetTimeoutMs;
   const rateLimitConfig = options.rateLimit ?? resolveRateLimitConfig(options.env);
+  const maxPendingRequests = parseIntEnv(options.env?.['MCP_STDIO_MAX_PENDING_REQUESTS'] ?? process.env['MCP_STDIO_MAX_PENDING_REQUESTS'], {
+    fallback: SECURITY_DEFAULTS.stdioMaxPendingRequests,
+    min: 1,
+    max: 100000,
+  });
+  const maxLineBytes = parseIntEnv(options.env?.['MCP_STDIO_MAX_LINE_BYTES'] ?? process.env['MCP_STDIO_MAX_LINE_BYTES'], {
+    fallback: SECURITY_DEFAULTS.stdioMaxLineBytes,
+    min: 1024,
+    max: 50 * 1024 * 1024,
+  });
+  const maxResponseBytes = parseIntEnv(options.env?.['MCP_STDIO_MAX_RESPONSE_BYTES'] ?? process.env['MCP_STDIO_MAX_RESPONSE_BYTES'], {
+    fallback: SECURITY_DEFAULTS.stdioMaxResponseBytes,
+    min: 1024,
+    max: 50 * 1024 * 1024,
+  });
 
   const serverId = options.serverId ?? `${options.targetCommand} ${options.targetArgs.join(' ')}`.trim();
   const cacheManager = initializeCache({
     serverId,
-    l1: { maxSize: 1000, ttlMs: (options.cacheTtlSeconds ?? 300) * 1000 },
-    l2: { dbPath: options.cacheDir ?? path.join(process.cwd(), '.mcp-cache'), ttlMs: (options.cacheTtlSeconds ?? 300) * 1000 },
+    l1: { maxSize: SECURITY_DEFAULTS.l1CacheMaxEntries, ttlMs: (options.cacheTtlSeconds ?? SECURITY_DEFAULTS.defaultCacheTtlSeconds) * 1000 },
+    l2: { dbPath: options.cacheDir ?? path.join(process.cwd(), '.mcp-cache'), ttlMs: (options.cacheTtlSeconds ?? SECURITY_DEFAULTS.defaultCacheTtlSeconds) * 1000 },
     alwaysCacheTools: options.alwaysCacheTools ?? ['read_file', 'read', 'open_file', 'list_directory', 'list_files', 'search_files', 'search'],
     neverCacheTools: options.neverCacheTools ?? ['write_file', 'write', 'create_file', 'execute_command', 'execute'],
   });
@@ -178,7 +188,9 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
   let stdioSessionColor: SessionColor = null;
 
   const writeRawJson = (message: unknown): void => {
-    output.write(JSON.stringify(message) + '\n');
+    try {
+      output.write(JSON.stringify(message) + '\n');
+    } catch {}
   };
 
   const clearPendingRequest = (requestId: string): PendingRequest | undefined => {
@@ -194,7 +206,7 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
     for (const [key, pending] of pendingRequests.entries()) {
       clearTimeout(pending.timeout);
       pendingRequests.delete(key);
-      writeRawJson(buildRpcErrorResponse(pending.id, code, message, data));
+      writeRawJson(buildJsonRpcErrorResponse(pending.id, code, message, data));
     }
   };
 
@@ -224,16 +236,24 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
     const trimmed = line.trim();
     if (!trimmed) return;
 
+    if (Buffer.byteLength(trimmed, 'utf8') > maxLineBytes) {
+      writeRawJson(buildJsonRpcErrorResponse(null, -32005, 'Fail-Closed: stdio request exceeds maximum line size.', {
+        code: 'STDIO_REQUEST_TOO_LARGE',
+        limit: maxLineBytes,
+      }));
+      return;
+    }
+
     let message: unknown;
     try {
       message = JSON.parse(trimmed);
     } catch {
-      writeRawJson(buildRpcErrorResponse(null, -32700, 'Parse error'));
+      writeRawJson(buildJsonRpcErrorResponse(null, -32700, 'Parse error'));
       return;
     }
 
     if (!isJsonRpcRequest(message)) {
-      writeRawJson(buildRpcErrorResponse(null, -32600, 'Invalid Request'));
+      writeRawJson(buildJsonRpcErrorResponse(null, -32600, 'Invalid Request'));
       return;
     }
 
@@ -251,13 +271,13 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
           toolName: tool?.name,
           snippet: createSnippet(message),
         });
-        writeRawJson(buildRpcErrorResponse(requestId, -32001, 'Fail-Closed: authentication required.', { code: 'AUTH_FAILURE' }));
+        writeRawJson(buildJsonRpcErrorResponse(requestId, -32001, 'Fail-Closed: authentication required.', { code: 'AUTH_FAILURE' }));
         return;
       }
     }
 
     if (stopped || !targetProcess?.stdin.writable) {
-      writeRawJson(buildRpcErrorResponse(requestId, -32004, 'Fail-Closed: target process is unavailable.', { code: 'TARGET_UNAVAILABLE' }));
+      writeRawJson(buildJsonRpcErrorResponse(requestId, -32004, 'Fail-Closed: target process is unavailable.', { code: 'TARGET_UNAVAILABLE' }));
       return;
     }
 
@@ -280,7 +300,7 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
             snippet: createSnippet(message),
           });
         }
-        writeRawJson(buildRpcErrorResponse(requestId, -32003, messageText, { code }));
+        writeRawJson(buildJsonRpcErrorResponse(requestId, -32003, messageText, { code }));
         return;
       }
     }
@@ -296,7 +316,7 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
       }, rateLimitConfig);
 
       if (!rateLimitDecision.allowed) {
-        writeRawJson(buildRpcErrorResponse(requestId, -32029, 'Fail-Closed: too many requests for this target/tool.', {
+        writeRawJson(buildJsonRpcErrorResponse(requestId, -32029, 'Fail-Closed: too many requests for this target/tool.', {
           code: 'RATE_LIMIT_EXCEEDED',
           retryAfter: rateLimitDecision.resetInSeconds,
           limit: rateLimitDecision.limit,
@@ -315,10 +335,18 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
     }
 
     if (requestId !== null) {
+      if (pendingRequests.size >= maxPendingRequests) {
+        writeRawJson(buildJsonRpcErrorResponse(requestId, -32029, 'Fail-Closed: too many in-flight stdio requests.', {
+          code: 'STDIO_PENDING_LIMIT_EXCEEDED',
+          limit: maxPendingRequests,
+        }));
+        return;
+      }
+
       const pendingTimeout = setTimeout(() => {
         const pending = clearPendingRequest(String(requestId));
         if (pending) {
-          writeRawJson(buildRpcErrorResponse(pending.id, -32007, 'Fail-Closed: target response timed out.', {
+          writeRawJson(buildJsonRpcErrorResponse(pending.id, -32007, 'Fail-Closed: target response timed out.', {
             code: 'TARGET_RESPONSE_TIMEOUT',
             timeoutMs: targetTimeoutMs,
           }));
@@ -337,21 +365,37 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
     }
 
     try {
-      targetProcess.stdin.write(JSON.stringify(message) + '\n');
+      const serializedMessage = JSON.stringify(message) + '\n';
+      if (!targetProcess.stdin.write(serializedMessage)) {
+        auditLog('STDIO_TARGET_BACKPRESSURE', {
+          code: 'STDIO_TARGET_BACKPRESSURE',
+          reason: 'Target stdin reported backpressure.',
+          toolName: tool?.name,
+          pendingRequests: pendingRequests.size,
+        });
+      }
     } catch (error) {
       if (requestId !== null) clearPendingRequest(String(requestId));
-      writeRawJson(buildRpcErrorResponse(requestId, -32004, 'Fail-Closed: target process is unavailable.', { code: 'TARGET_UNAVAILABLE' }));
+      writeRawJson(buildJsonRpcErrorResponse(requestId, -32004, 'Fail-Closed: target process is unavailable.', { code: 'TARGET_UNAVAILABLE' }));
     }
   };
 
   const checkOomLimit = (id: JsonRpcId, payload: unknown): boolean => {
-    const jsonStr = JSON.stringify(payload);
+    let jsonStr: string;
+    try {
+      jsonStr = JSON.stringify(payload);
+    } catch {
+      if (id !== null && id !== undefined) {
+        writeRawJson(buildJsonRpcErrorResponse(id, -32005, 'Fail-Closed: response is not serializable.', { code: 'TARGET_RESPONSE_UNSERIALIZABLE' }));
+      }
+      return false;
+    }
     const byteLength = Buffer.byteLength(jsonStr, 'utf8');
 
-    if (byteLength > OOM_MAX_RESPONSE_BYTES) {
-      auditLog('OOM_PROTECTION_TRIGGERED', { id, byteLength, limit: OOM_MAX_RESPONSE_BYTES });
+    if (byteLength > maxResponseBytes) {
+      auditLog('OOM_PROTECTION_TRIGGERED', { id, byteLength, limit: maxResponseBytes });
       if (id !== null && id !== undefined) {
-        writeRawJson(buildRpcErrorResponse(id, -32005, 'Fail-Closed: Response exceeds strict OOM size limit.', { limit: OOM_MAX_RESPONSE_BYTES }));
+        writeRawJson(buildJsonRpcErrorResponse(id, -32005, 'Fail-Closed: Response exceeds strict OOM size limit.', { limit: maxResponseBytes }));
       }
       return false;
     }
@@ -363,6 +407,16 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
 
     const trimmed = line.trim();
     if (!trimmed) return;
+
+    if (Buffer.byteLength(trimmed, 'utf8') > maxLineBytes) {
+      failAllPending(-32005, 'Fail-Closed: downstream target emitted an oversized JSON line.', {
+        code: 'TARGET_RESPONSE_TOO_LARGE',
+        limit: maxLineBytes,
+      });
+      terminateTarget();
+      checkDrainComplete();
+      return;
+    }
 
     let message: unknown;
     try {
@@ -388,6 +442,11 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
     }
 
     if (Object.prototype.hasOwnProperty.call(message, 'result')) {
+      if (!checkOomLimit(message.id, message.result)) {
+        checkDrainComplete();
+        return;
+      }
+
       const sanitizedResult = sanitizeResponse(message.result);
       if (!checkOomLimit(message.id, sanitizedResult)) {
         checkDrainComplete();
@@ -399,6 +458,11 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
       }
 
       writeRawJson({ jsonrpc: '2.0', id: message.id, result: sanitizedResult });
+      checkDrainComplete();
+      return;
+    }
+
+    if (!checkOomLimit(message.id, message.error)) {
       checkDrainComplete();
       return;
     }
@@ -420,14 +484,33 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
+    targetProcess.stderr.on('data', (chunk: Buffer) => {
+      if (!options.verbose || !errorOutput) {
+        return;
+      }
+
+      try {
+        const text = chunk.toString('utf8').slice(0, resolveSnippetMaxLength());
+        errorOutput.write(text);
+      } catch {}
+    });
+    targetProcess.stderr.on('error', () => {});
+    targetProcess.stdin.on('error', () => {
+      failAllPending(-32004, 'Fail-Closed: target process is unavailable.', { code: 'TARGET_UNAVAILABLE' });
+    });
+
     targetInterface = readline.createInterface({ input: targetProcess.stdout, crlfDelay: Infinity });
     targetInterface.on('line', handleTargetLine);
     targetProcess.on('error', () => {
+      failAllPending(-32004, 'Fail-Closed: target process is unavailable.', { code: 'TARGET_UNAVAILABLE' });
       targetProcess = null;
       targetInterface?.close();
       targetInterface = null;
     });
     targetProcess.on('close', () => {
+      if (!stopped && pendingRequests.size > 0) {
+        failAllPending(-32004, 'Fail-Closed: target process closed before responding.', { code: 'TARGET_CLOSED' });
+      }
       targetProcess = null;
       targetInterface = null;
     });
@@ -439,7 +522,13 @@ export const createStdioFirewallProxy = (options: StdioFirewallOptions) => {
       if (options.adminEnabled) startAdminServer(options.adminPort ?? 9090);
 
       clientInterface = readline.createInterface({ input: input, crlfDelay: Infinity });
-      clientInterface.on('line', (line) => { void handleClientLine(line); });
+      clientInterface.on('line', (line) => {
+        void handleClientLine(line).catch(() => {
+          writeRawJson(buildJsonRpcErrorResponse(null, -32603, 'Fail-Closed: internal stdio proxy failure.', {
+            code: 'STDIO_PROXY_INTERNAL_ERROR',
+          }));
+        });
+      });
       clientInterface.on('close', () => {
         if (draining || stopped) return;
         if (pendingRequests.size > 0) {

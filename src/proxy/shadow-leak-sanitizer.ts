@@ -1,4 +1,5 @@
 import { auditLog } from '../utils/auditLogger.js';
+import { SECURITY_DEFAULTS } from '../security-constants.js';
 
 const SENSITIVE_KEYS_PATTERNS: RegExp[] = [
   /token/i,
@@ -59,6 +60,14 @@ const defaultConfig: SanitizeConfig = {
   maskSensitiveValues: true,
 };
 
+const boundStringForSanitizer = (value: string): string => {
+  if (value.length <= SECURITY_DEFAULTS.sanitizerMaxStringLength) {
+    return value;
+  }
+
+  return `${value.slice(0, SECURITY_DEFAULTS.sanitizerMaxStringLength)}...[TRUNCATED]`;
+};
+
 const redactInlineSecrets = (value: string): string => {
   if (!SECRET_TEXT_MARKER_PATTERN.test(value)) {
     return value;
@@ -76,9 +85,14 @@ const redactInlineSecrets = (value: string): string => {
   );
 };
 
-const sanitizeValue = (value: unknown, config: SanitizeConfig): unknown => {
+const sanitizeValue = (
+  value: unknown,
+  config: SanitizeConfig,
+  depth: number,
+  seen: WeakSet<object>,
+): unknown => {
   if (typeof value === 'string') {
-    let sanitized = value;
+    let sanitized = boundStringForSanitizer(value);
 
     if (config.removeStackTraces) {
       for (const pattern of STACK_TRACE_PATTERNS) {
@@ -113,12 +127,40 @@ const sanitizeValue = (value: unknown, config: SanitizeConfig): unknown => {
   }
 
   if (Array.isArray(value)) {
-    return value.map(item => sanitizeValue(item, config));
+    if (seen.has(value)) {
+      return '[CIRCULAR]';
+    }
+
+    if (depth <= 0) {
+      return '[TRUNCATED_DEPTH]';
+    }
+
+    seen.add(value);
+    const sanitizedArray = value
+      .slice(0, SECURITY_DEFAULTS.sanitizerMaxArrayItems)
+      .map(item => sanitizeValue(item, config, depth - 1, seen));
+
+    if (value.length > SECURITY_DEFAULTS.sanitizerMaxArrayItems) {
+      sanitizedArray.push(`[TRUNCATED_ARRAY:${value.length - SECURITY_DEFAULTS.sanitizerMaxArrayItems}]`);
+    }
+
+    seen.delete(value);
+    return sanitizedArray;
   }
 
   if (value !== null && typeof value === 'object') {
+    if (seen.has(value)) {
+      return '[CIRCULAR]';
+    }
+
+    if (depth <= 0) {
+      return '[TRUNCATED_DEPTH]';
+    }
+
+    seen.add(value);
     const sanitizedObj: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value)) {
+    const entries = Object.entries(value).slice(0, SECURITY_DEFAULTS.sanitizerMaxObjectKeys);
+    for (const [k, v] of entries) {
       let isSensitive = false;
       for (const pattern of SENSITIVE_KEYS_PATTERNS) {
         if (pattern.test(k)) {
@@ -130,9 +172,16 @@ const sanitizeValue = (value: unknown, config: SanitizeConfig): unknown => {
       if (isSensitive && config.maskSensitiveValues) {
         sanitizedObj[k] = '[REDACTED]';
       } else {
-        sanitizedObj[k] = sanitizeValue(v, config);
+        sanitizedObj[k] = sanitizeValue(v, config, depth - 1, seen);
       }
     }
+
+    const keyCount = Object.keys(value).length;
+    if (keyCount > SECURITY_DEFAULTS.sanitizerMaxObjectKeys) {
+      sanitizedObj['__truncatedKeys'] = keyCount - SECURITY_DEFAULTS.sanitizerMaxObjectKeys;
+    }
+
+    seen.delete(value);
     return sanitizedObj;
   }
 
@@ -141,7 +190,7 @@ const sanitizeValue = (value: unknown, config: SanitizeConfig): unknown => {
 
 export const sanitizeResponse = <T>(data: T, config: Partial<SanitizeConfig> = {}): T => {
   const finalConfig = { ...defaultConfig, ...config };
-  const sanitized = sanitizeValue(data, finalConfig);
+  const sanitized = sanitizeValue(data, finalConfig, SECURITY_DEFAULTS.sanitizerMaxDepth, new WeakSet<object>());
 
   auditLog('RESPONSE_SANITIZED', {
     type: typeof data,

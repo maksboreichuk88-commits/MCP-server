@@ -2,11 +2,13 @@ import Database from 'better-sqlite3';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { SECURITY_DEFAULTS } from '../security-constants.js';
 
 export interface L2CacheConfig {
   dbPath: string;
   ttlMs: number;
   maxEntries?: number;
+  cleanupIntervalMs?: number;
 }
 
 export interface L2Cache {
@@ -38,7 +40,14 @@ export interface SecurityLogStore {
   close: () => void;
 }
 
-export const SECURITY_LOG_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+export interface SecurityLogStoreConfig {
+  dbPath: string;
+  ttlMs: number;
+  maxEntries: number;
+  cleanupIntervalMs: number;
+}
+
+export const SECURITY_LOG_TTL_MS = SECURITY_DEFAULTS.securityLogTtlMs;
 
 const resolveDbFile = (dbPath?: string): string => {
   const dbDir = dbPath ?? path.join(process.cwd(), '.mcp-cache');
@@ -53,10 +62,12 @@ export const createL2Cache = (config: Partial<L2CacheConfig> = {}): L2Cache => {
   const dbFile = resolveDbFile(config.dbPath);
   const db = new Database(dbFile);
 
-  const ttlMs = config.ttlMs ?? 300000;
-  const maxEntries = config.maxEntries ?? 10000;
+  const ttlMs = config.ttlMs ?? SECURITY_DEFAULTS.defaultCacheTtlSeconds * 1000;
+  const maxEntries = config.maxEntries ?? SECURITY_DEFAULTS.l2CacheMaxEntries;
+  const cleanupIntervalMs = config.cleanupIntervalMs ?? SECURITY_DEFAULTS.l2CleanupIntervalMs;
 
   db.pragma('journal_mode = WAL');
+  db.pragma(`busy_timeout = ${SECURITY_DEFAULTS.sqliteBusyTimeoutMs}`);
   db.exec(`
     CREATE TABLE IF NOT EXISTS cache_entries (
       key TEXT PRIMARY KEY,
@@ -104,7 +115,7 @@ export const createL2Cache = (config: Partial<L2CacheConfig> = {}): L2Cache => {
 
   cleanupIfNeeded();
 
-  const cleanupTimer = setInterval(cleanupIfNeeded, 300_000);
+  const cleanupTimer = setInterval(cleanupIfNeeded, cleanupIntervalMs);
   cleanupTimer.unref();
 
   return {
@@ -180,13 +191,16 @@ export const createL2Cache = (config: Partial<L2CacheConfig> = {}): L2Cache => {
 };
 
 export const createSecurityLogStore = (
-  config: Partial<Pick<L2CacheConfig, 'dbPath' | 'ttlMs'>> = {},
+  config: Partial<SecurityLogStoreConfig> = {},
 ): SecurityLogStore => {
   const dbFile = resolveDbFile(config.dbPath);
   const db = new Database(dbFile);
   const ttlMs = config.ttlMs ?? SECURITY_LOG_TTL_MS;
+  const maxEntries = config.maxEntries ?? SECURITY_DEFAULTS.securityLogMaxEntries;
+  const cleanupIntervalMs = config.cleanupIntervalMs ?? SECURITY_DEFAULTS.securityLogCleanupIntervalMs;
 
   db.pragma('journal_mode = WAL');
+  db.pragma(`busy_timeout = ${SECURITY_DEFAULTS.sqliteBusyTimeoutMs}`);
   db.exec(`
     CREATE TABLE IF NOT EXISTS security_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -216,14 +230,26 @@ export const createSecurityLogStore = (
   `);
   const stmtClear = db.prepare('DELETE FROM security_logs');
   const stmtCleanup = db.prepare('DELETE FROM security_logs WHERE expires_at <= ?');
+  const stmtCount = db.prepare('SELECT COUNT(*) as count FROM security_logs');
+  const stmtPruneOldest = db.prepare(`
+    DELETE FROM security_logs WHERE id IN (
+      SELECT id FROM security_logs
+      ORDER BY created_at ASC, id ASC
+      LIMIT ?
+    )
+  `);
 
   const cleanupIfNeeded = (): void => {
     stmtCleanup.run(Date.now());
+    const count = stmtCount.get() as { count: number };
+    if (count.count > maxEntries) {
+      stmtPruneOldest.run(count.count - maxEntries);
+    }
   };
 
   cleanupIfNeeded();
 
-  const cleanupTimer = setInterval(cleanupIfNeeded, 300_000);
+  const cleanupTimer = setInterval(cleanupIfNeeded, cleanupIntervalMs);
   cleanupTimer.unref();
 
   return {
@@ -241,6 +267,7 @@ export const createSecurityLogStore = (
         entry.code ?? null,
         entry.event ?? null,
       );
+      cleanupIfNeeded();
     },
 
     listRecent: (limit = 5): SecurityLogEntry[] => {

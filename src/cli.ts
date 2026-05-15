@@ -14,8 +14,10 @@ import { recordHttpMcpRequest } from './metrics/prometheus.js';
 import { getRegisteredRoutes, routeRequest } from './proxy/router.js';
 import { sanitizeResponse } from './proxy/shadow-leak-sanitizer.js';
 import { resolveProxyRuntimeConfig } from './runtime-config.js';
+import { resolveHttpJsonLimit } from './security-constants.js';
 import { createStdioFirewallProxy } from './stdio/proxy.js';
 import { auditLog } from './utils/auditLogger.js';
+import { buildHttpErrorBody } from './utils/json-rpc.js';
 import { getPrimaryToolInvocation } from './utils/mcp-request.js';
 import { loadGatewayConfig, startGatewayTargets, stopGatewayTargets } from './gateway-config.js';
 
@@ -73,7 +75,7 @@ const startGateway = async (configPath: string): Promise<void> => {
     targetResolver: (_req, toolName) => toolName ? getRegisteredRoutes().get(toolName)?.url : undefined,
   });
 
-  app.use(express.json({ strict: true, limit: '1mb' }));
+  app.use(express.json({ strict: true, limit: resolveHttpJsonLimit() }));
   app.use(createAdminRouter());
   app.use('/mcp', rateLimiter);
   app.post('/mcp', (_req, _res, next) => { recordHttpMcpRequest(); next(); });
@@ -85,9 +87,12 @@ const startGateway = async (configPath: string): Promise<void> => {
       const tool = getPrimaryToolInvocation(body);
 
       if (!tool?.name) {
-        res.status(400).json({
-          error: { code: 'INVALID_MCP_REQUEST', message: 'Fail-Closed' },
-        });
+        res.status(400).json(buildHttpErrorBody(
+          body,
+          'INVALID_MCP_REQUEST',
+          'Fail-Closed',
+          -32600,
+        ));
         return;
       }
 

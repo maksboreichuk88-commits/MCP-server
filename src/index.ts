@@ -8,7 +8,9 @@ import { createRateLimiter, resolveRateLimitConfig } from './middleware/rate-lim
 import { recordHttpMcpRequest } from './metrics/prometheus.js';
 import { getRegisteredRoutes, routeRequest } from './proxy/router.js';
 import { sanitizeResponse } from './proxy/shadow-leak-sanitizer.js';
+import { resolveHttpJsonLimit } from './security-constants.js';
 import { auditLog } from './utils/auditLogger.js';
+import { buildHttpErrorBody } from './utils/json-rpc.js';
 import { getPrimaryToolInvocation } from './utils/mcp-request.js';
 
 const DEFAULT_PORT = parseInt(process.env['PORT'] ?? process.env['MCP_PORT'] ?? '3000', 10);
@@ -18,7 +20,7 @@ const DEFAULT_CACHE_DIR = process.env['MCP_CACHE_DIR'] ?? path.join(process.cwd(
 
 const app = express();
 
-app.use(express.json({ strict: true, limit: '1mb' }));
+app.use(express.json({ strict: true, limit: resolveHttpJsonLimit() }));
 
 const rateLimiter = createRateLimiter({
   ...resolveRateLimitConfig(),
@@ -44,9 +46,12 @@ app.post('/mcp', async (req, res, next) => {
     const tool = getPrimaryToolInvocation(body);
 
     if (!tool?.name) {
-      res.status(400).json({
-        error: { code: 'INVALID_MCP_REQUEST', message: 'Fail-Closed' },
-      });
+      res.status(400).json(buildHttpErrorBody(
+        body,
+        'INVALID_MCP_REQUEST',
+        'Fail-Closed',
+        -32600,
+      ));
       return;
     }
 

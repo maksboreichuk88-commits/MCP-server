@@ -1,4 +1,5 @@
 import { LRUCache } from 'lru-cache';
+import { SECURITY_DEFAULTS } from '../security-constants.js';
 
 export interface CacheEntry<T> {
   value: T;
@@ -24,8 +25,8 @@ export interface L1Cache<T> {
 
 export const createL1Cache = <T>(config: Partial<L1CacheConfig> = {}): L1Cache<T> => {
   const cache = new LRUCache<string, CacheEntry<T>>({
-    max: config.maxSize ?? 1000,
-    ttl: config.ttlMs ?? 300000,
+    max: config.maxSize ?? SECURITY_DEFAULTS.l1CacheMaxEntries,
+    ttl: config.ttlMs ?? SECURITY_DEFAULTS.defaultCacheTtlSeconds * 1000,
     updateAgeOnGet: false,
   });
 
@@ -64,7 +65,7 @@ export const createL1Cache = <T>(config: Partial<L1CacheConfig> = {}): L1Cache<T
       cache.set(key, {
         value,
         createdAt: Date.now(),
-        ttl: ttlMs ?? config.ttlMs ?? 300000,
+        ttl: ttlMs ?? config.ttlMs ?? SECURITY_DEFAULTS.defaultCacheTtlSeconds * 1000,
       });
     },
 
@@ -95,7 +96,7 @@ export const createL1Cache = <T>(config: Partial<L1CacheConfig> = {}): L1Cache<T
     stats: (): { size: number; maxSize: number } => {
       return {
         size: cache.size,
-        maxSize: config.maxSize ?? 1000,
+        maxSize: config.maxSize ?? SECURITY_DEFAULTS.l1CacheMaxEntries,
       };
     },
   };

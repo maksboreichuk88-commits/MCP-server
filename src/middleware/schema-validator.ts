@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { TrustGateError } from '../errors.js';
 import { auditLogWithSIEM } from '../utils/auditLogger.js';
+import { buildHttpErrorBody } from '../utils/json-rpc.js';
 import { extractToolInvocations } from '../utils/mcp-request.js';
 
 export type ToolSchemaRegistry = Record<string, z.ZodTypeAny>;
@@ -78,21 +79,22 @@ export const createSchemaValidator = (registry: ToolSchemaRegistry) => {
       next();
     } catch (error: unknown) {
       if (error instanceof TrustGateError) {
-        res.status(error.status).json({
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        });
+        res.status(error.status).json(buildHttpErrorBody(
+          req.body,
+          error.code,
+          error.message,
+          -32003,
+          error.details,
+        ));
         return;
       }
 
-      res.status(500).json({
-        error: {
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'An unexpected error occurred during Progressive Disclosure validation.',
-        },
-      });
+      res.status(500).json(buildHttpErrorBody(
+        req.body,
+        'INTERNAL_SERVER_ERROR',
+        'An unexpected error occurred during Progressive Disclosure validation.',
+        -32603,
+      ));
     }
   };
 };

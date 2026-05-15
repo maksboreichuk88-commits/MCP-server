@@ -1,8 +1,9 @@
 import { z } from 'zod';
+import { SECURITY_DEFAULTS } from '../security-constants.js';
 
 export const TargetServerConfigSchema = z.object({
   url: z.string().url(),
-  timeoutMs: z.number().int().min(100).max(30000).default(5000),
+  timeoutMs: z.number().int().min(100).max(30000).default(SECURITY_DEFAULTS.routeDefaultTimeoutMs),
   headers: z.record(z.string()).optional(),
 }).strict();
 

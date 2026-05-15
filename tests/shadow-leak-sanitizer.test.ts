@@ -37,4 +37,22 @@ describe('shadow leak sanitizer', () => {
 
     expect(sanitizeResponse(payload)).toBe(payload);
   });
+
+  it('handles cyclic objects without recursive crashes', () => {
+    const payload: Record<string, unknown> = { safe: 'ok' };
+    payload['self'] = payload;
+
+    const sanitized = sanitizeResponse(payload) as Record<string, unknown>;
+
+    expect(sanitized['safe']).toBe('ok');
+    expect(sanitized['self']).toBe('[CIRCULAR]');
+  });
+
+  it('truncates overly large secret-bearing strings before regex processing', () => {
+    const payload = `OPENAI_API_KEY=${'x'.repeat(1024 * 1024 + 32)}`;
+    const sanitized = sanitizeResponse(payload);
+
+    expect(sanitized.startsWith('OPENAI_API_KEY=[REDACTED]')).toBe(true);
+    expect(sanitized.length).toBeLessThan(payload.length);
+  });
 });

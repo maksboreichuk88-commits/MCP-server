@@ -1,11 +1,20 @@
 import fs from 'fs';
 import path from 'path';
 import { createSecurityLogStore, type SecurityLogStore } from '../cache/l2-cache.js';
+import { parseIntEnv, resolveSnippetMaxLength, SECURITY_DEFAULTS } from '../security-constants.js';
 
 const logFilePath = path.join(process.cwd(), 'audit.log');
 
 const logStream = fs.createWriteStream(logFilePath, { flags: 'a' });
-logStream.on('error', () => {});
+let auditFileBackpressure = false;
+let droppedAuditFileWrites = 0;
+logStream.on('drain', () => {
+  auditFileBackpressure = false;
+  droppedAuditFileWrites = 0;
+});
+logStream.on('error', () => {
+  auditFileBackpressure = true;
+});
 process.once('exit', () => { logStream.end(); });
 
 export type AuditEvent = {
@@ -51,13 +60,101 @@ const blockedMetricsState = {
   lastBlockedAt: null as string | null,
   byCode: new Map<string, number>(),
   recent: [] as BlockedRequestSample[],
-  recentLimit: 10,
+  recentLimit: SECURITY_DEFAULTS.blockedRecentLimit,
 };
 
 let securityLogStore: SecurityLogStore | null = null;
 
+const truncateString = (value: string, maxLength: number): string => {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  return `${value.slice(0, maxLength)}...[TRUNCATED]`;
+};
+
+const toBoundedValue = (value: unknown, depth: number, seen: WeakSet<object>): unknown => {
+  if (typeof value === 'string') {
+    return truncateString(value, SECURITY_DEFAULTS.auditLogMaxEntryBytes);
+  }
+
+  if (typeof value === 'bigint') {
+    return value.toString();
+  }
+
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+
+  if (seen.has(value)) {
+    return '[CIRCULAR]';
+  }
+
+  if (depth <= 0) {
+    return '[TRUNCATED_DEPTH]';
+  }
+
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    const items = value
+      .slice(0, SECURITY_DEFAULTS.sanitizerMaxArrayItems)
+      .map((item) => toBoundedValue(item, depth - 1, seen));
+
+    if (value.length > SECURITY_DEFAULTS.sanitizerMaxArrayItems) {
+      items.push(`[TRUNCATED_ARRAY:${value.length - SECURITY_DEFAULTS.sanitizerMaxArrayItems}]`);
+    }
+
+    seen.delete(value);
+    return items;
+  }
+
+  const bounded: Record<string, unknown> = {};
+  const entries = Object.entries(value).slice(0, SECURITY_DEFAULTS.sanitizerMaxObjectKeys);
+  for (const [key, nested] of entries) {
+    bounded[key] = toBoundedValue(nested, depth - 1, seen);
+  }
+
+  const keyCount = Object.keys(value).length;
+  if (keyCount > SECURITY_DEFAULTS.sanitizerMaxObjectKeys) {
+    bounded['__truncatedKeys'] = keyCount - SECURITY_DEFAULTS.sanitizerMaxObjectKeys;
+  }
+
+  seen.delete(value);
+  return bounded;
+};
+
+const safeJsonStringify = (value: unknown): string => {
+  try {
+    return JSON.stringify(toBoundedValue(value, SECURITY_DEFAULTS.sanitizerMaxDepth, new WeakSet<object>()));
+  } catch {
+    return JSON.stringify('[UNSERIALIZABLE]');
+  }
+};
+
+const getAuditLogMaxEntryBytes = (): number => {
+  return parseIntEnv(process.env['MCP_AUDIT_LOG_MAX_ENTRY_BYTES'], {
+    fallback: SECURITY_DEFAULTS.auditLogMaxEntryBytes,
+    min: 1024,
+    max: 1024 * 1024,
+  });
+};
+
 const createEntry = (timestamp: string, event: string, details: Record<string, unknown>): string => {
-  return JSON.stringify({ timestamp, event, ...details });
+  const serialized = safeJsonStringify({ timestamp, event, ...details });
+  const maxBytes = getAuditLogMaxEntryBytes();
+
+  if (Buffer.byteLength(serialized, 'utf8') <= maxBytes) {
+    return serialized;
+  }
+
+  return safeJsonStringify({
+    timestamp,
+    event,
+    truncated: true,
+    reason: 'Audit entry exceeded max serialized size.',
+    snippet: truncateString(serialized, resolveSnippetMaxLength()),
+  });
 };
 
 const readStringDetail = (details: Record<string, unknown>, keys: string[]): string | undefined => {
@@ -90,16 +187,12 @@ const inferBlockedCode = (event: string, details: Record<string, unknown>): stri
 const toSnippet = (details: Record<string, unknown>): string | undefined => {
   const explicit = readStringDetail(details, ['snippet', 'url', 'targetUrl', 'path']);
   if (explicit) {
-    return explicit.slice(0, 240);
+    return explicit.slice(0, resolveSnippetMaxLength());
   }
 
   const nested = details['details'];
   if (nested !== undefined) {
-    try {
-      return JSON.stringify(nested).slice(0, 240);
-    } catch {
-      return String(nested).slice(0, 240);
-    }
+    return safeJsonStringify(nested).slice(0, resolveSnippetMaxLength());
   }
 
   return undefined;
@@ -138,6 +231,28 @@ const recordSecurityLog = (timestamp: string, event: string, code: string, detai
   } catch {}
 };
 
+const writeAuditFile = (entry: string): void => {
+  if (auditFileBackpressure) {
+    droppedAuditFileWrites = Math.min(
+      droppedAuditFileWrites + 1,
+      SECURITY_DEFAULTS.auditLogBackpressureDropThreshold,
+    );
+    return;
+  }
+
+  try {
+    auditFileBackpressure = !logStream.write(entry);
+  } catch {
+    auditFileBackpressure = true;
+  }
+};
+
+const writeAuditStderr = (entry: string): void => {
+  try {
+    process.stderr.write(entry);
+  } catch {}
+};
+
 const recordBlockedRequest = (timestamp: string, event: string, details: Record<string, unknown>): void => {
   const code = inferBlockedCode(event, details);
   if (!code) return;
@@ -166,8 +281,8 @@ const recordBlockedRequest = (timestamp: string, event: string, details: Record<
 export const auditLog = (event: string, details: Record<string, unknown>): void => {
   const timestamp = new Date().toISOString();
   const entry = createEntry(timestamp, event, details) + '\n';
-  logStream.write(entry);
-  process.stderr.write(entry);
+  writeAuditFile(entry);
+  writeAuditStderr(entry);
   recordBlockedRequest(timestamp, event, details);
 };
 

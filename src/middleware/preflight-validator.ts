@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { TrustGateError } from '../errors.js';
 import { auditLogWithSIEM } from '../utils/auditLogger.js';
+import { buildHttpErrorBody } from '../utils/json-rpc.js';
 import { extractToolInvocations } from '../utils/mcp-request.js';
 
 const PreflightIdSchema = z.string().uuid();
@@ -137,12 +138,13 @@ export const preflightValidator = (req: Request, res: Response, next: NextFuncti
     next();
   } catch (error: unknown) {
     if (error instanceof TrustGateError) {
-      res.status(error.status).json({
-        error: {
-          code: error.code,
-          message: error.message,
-        },
-      });
+      res.status(error.status).json(buildHttpErrorBody(
+        req.body,
+        error.code,
+        error.message,
+        -32003,
+        error.details,
+      ));
       return;
     }
 
@@ -150,11 +152,11 @@ export const preflightValidator = (req: Request, res: Response, next: NextFuncti
       reason: error instanceof Error ? error.message : 'Unknown preflight error',
       ip: req.ip,
     });
-    res.status(403).json({
-      error: {
-        code: 'PREFLIGHT_VALIDATION_ERROR',
-        message: 'Preflight validation failed. Request denied (Fail-Closed).',
-      },
-    });
+    res.status(403).json(buildHttpErrorBody(
+      req.body,
+      'PREFLIGHT_VALIDATION_ERROR',
+      'Preflight validation failed. Request denied (Fail-Closed).',
+      -32003,
+    ));
   }
 };
