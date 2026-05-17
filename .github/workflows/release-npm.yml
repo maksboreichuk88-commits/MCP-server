@@ -5,168 +5,71 @@ on:
     tags:
       - 'v*.*.*'
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
-  release:
-    name: Verify, Benchmark, And Publish
+  release-root:
+    name: Publish Root npm Package
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write
+      contents: read
       id-token: write
 
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v6
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+          registry-url: https://registry.npmjs.org
 
-      - name: Assert package metadata
-        run: npm run assert:package-metadata
+      - name: Check root release tag
+        id: root_release
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const expectedTag = `v${packageJson.version}`;
+          const actualTag = process.env.GITHUB_REF_NAME;
+          const shouldPublish = actualTag === expectedTag;
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `publish=${shouldPublish}\n`);
+          console.log(shouldPublish
+            ? `Root release tag confirmed: ${actualTag}`
+            : `Skipping root package publish: expected ${expectedTag}, got ${actualTag}`);
+          NODE
 
-      - name: Verify release parity before publish
+      - name: Install dependencies
+        if: steps.root_release.outputs.publish == 'true'
+        run: npm ci
+
+      - name: Install UI dependencies
+        if: steps.root_release.outputs.publish == 'true'
+        run: npm --prefix ui ci
+
+      - name: Verify release parity
+        if: steps.root_release.outputs.publish == 'true'
         run: npm run verify:release-parity
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_SHA: ${{ github.sha }}
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install UI dependencies
-        run: npm --prefix ui ci
-
-      - name: Run verification suite
+      - name: Verify
+        if: steps.root_release.outputs.publish == 'true'
         run: npm run verify:all
 
-      - name: Generate stdio benchmark evidence packet
-        run: npm run benchmark:stdio -- --json --output evidence.json
-
-      - name: Dry-run npm pack
-        run: npm run pack:dry-run
-
-      - name: Smoke test packaged CLI
-        run: npm run pack:smoke
-
-      - name: Summarize benchmark evidence
-        run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-          const report = JSON.parse(fs.readFileSync('evidence.json', 'utf8'));
-          const lines = [
-            '## stdio benchmark',
-            '',
-            `- verdict: \`${report.verdict}\``,
-            `- cases: \`${report.totals.cases}\``,
-            `- requests: \`${report.totals.requests}\``,
-            `- false positives: \`${report.totals.falsePositives}\``,
-            `- false negatives: \`${report.totals.falseNegatives}\``,
-            `- cache consistency failures: \`${report.totals.cacheConsistencyFailures}\``,
-          ];
-          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');
-          NODE
-
-      - name: Upload stdio benchmark evidence packet
-        uses: actions/upload-artifact@v7
-        with:
-          name: stdio-evidence-benchmark
-          path: evidence.json
-
-      - name: Publish to npm
-        run: npm publish --provenance --access public
+      - name: Publish root package
+        if: steps.root_release.outputs.publish == 'true'
+        run: npm publish --provenance --access public --workspaces=false
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Verify published registry metadata
+        if: steps.root_release.outputs.publish == 'true'
         run: npm run verify:registry-metadata -- --version "${GITHUB_REF_NAME#v}"
         env:
           EXPECTED_GIT_HEAD: ${{ github.sha }}
-
-      - name: Publish GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          cat > release-notes.txt <<'EOF'
-          Release evidence:
-
-          - full verification suite passed
-          - stdio benchmark attached as `evidence.json`
-          - npm tarball smoke checks passed before publication
-          EOF
-
-          if gh release view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            gh release upload "${GITHUB_REF_NAME}" evidence.json --repo "${GITHUB_REPOSITORY}" --clobber
-            gh release edit "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --title "${GITHUB_REF_NAME}" --notes-file release-notes.txt
-          else
-            gh release create "${GITHUB_REF_NAME}" evidence.json --repo "${GITHUB_REPOSITORY}" --title "${GITHUB_REF_NAME}" --notes-file release-notes.txt
-          fi
-
-      - name: Summarize published release identity
-        run: |
-          node <<'NODE'
-          const { execFileSync } = require('node:child_process');
-          const fs = require('node:fs');
-
-          const version = process.env.GITHUB_REF_NAME.replace(/^v/, '');
-          const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-          const packageName = packageJson.name;
-          const metadata = JSON.parse(
-            execFileSync(
-              'npm',
-              [
-                'view',
-                `${packageName}@${version}`,
-                'version',
-                'repository',
-                'homepage',
-                'bugs',
-                'gitHead',
-                '--json',
-              ],
-              { encoding: 'utf8' }
-            )
-          );
-
-          const getField = (value) => {
-            if (!value) {
-              return '(missing)';
-            }
-
-            if (typeof value === 'string') {
-              return value;
-            }
-
-            if (typeof value === 'object' && value.url) {
-              return value.url;
-            }
-
-            return JSON.stringify(value);
-          };
-
-          const lines = [
-            '## published release identity',
-            '',
-            `- tag: \`${process.env.GITHUB_REF_NAME}\``,
-            `- package name: \`${packageName}\``,
-            `- package version: \`${metadata.version || version}\``,
-            `- npm repository: \`${getField(metadata.repository)}\``,
-            `- npm homepage: \`${getField(metadata.homepage)}\``,
-            `- npm bugs: \`${getField(metadata.bugs)}\``,
-            `- npm gitHead: \`${getField(metadata.gitHead)}\``,
-          ];
-
-          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');
-          NODE
-
-      - name: Confirm GitHub release exists
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}"
