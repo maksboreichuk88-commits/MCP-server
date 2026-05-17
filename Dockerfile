@@ -3,18 +3,34 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm ci --ignore-scripts
+RUN apk add --no-cache g++ make python3
 
-COPY ui/package*.json ./ui/
-RUN npm --prefix ui ci --ignore-scripts
+COPY package.json package-lock.json ./
+COPY packages/toolwall-langchain/package.json ./packages/toolwall-langchain/package.json
+COPY packages/toolwall-vercel-ai/package.json ./packages/toolwall-vercel-ai/package.json
+RUN npm ci --ignore-scripts
 
 COPY tsconfig.json ./
 COPY src/ ./src/
-RUN npm run build
+COPY packages/ ./packages/
+RUN npm run build && npm run build --workspaces --if-present
+
+COPY ui/package.json ui/package-lock.json ./ui/
+RUN npm --prefix ui ci
 
 COPY ui/ ./ui/
 RUN npm --prefix ui run build
+
+FROM node:20-alpine AS production-deps
+
+WORKDIR /app
+
+RUN apk add --no-cache g++ make python3
+
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --workspaces=false --ignore-scripts \
+    && npm rebuild better-sqlite3 --build-from-source \
+    && npm cache clean --force
 
 FROM node:20-alpine AS runner
 
@@ -23,25 +39,23 @@ LABEL org.opencontainers.image.title="Toolwall" \
       org.opencontainers.image.source="https://github.com/shleder/toolwall" \
       org.opencontainers.image.licenses="MIT"
 
-WORKDIR /app
-
-RUN apk add --no-cache dumb-init \
-    && mkdir -p /data/.mcp-cache \
-    && chown -R node:node /app /data
-
-COPY --chown=node:node package*.json ./
-RUN npm ci --omit=dev --ignore-scripts
-
-COPY --chown=node:node --from=builder /app/dist ./dist
-COPY --chown=node:node --from=builder /app/ui/dist ./ui/dist
-COPY --chown=node:node examples/ ./examples/
-COPY --chown=node:node scripts/ ./scripts/
-COPY --chown=node:node docs/ ./docs/
-
 ENV NODE_ENV=production
 ENV MCP_CACHE_DIR=/data/.mcp-cache
 
-USER node
+WORKDIR /app
+
+RUN apk add --no-cache dumb-init \
+    && addgroup -S toolwall \
+    && adduser -S -G toolwall -h /home/toolwall-user toolwall-user \
+    && mkdir -p /app /data/.mcp-cache \
+    && chown -R toolwall-user:toolwall /app /data
+
+COPY --chown=toolwall-user:toolwall package.json ./
+COPY --chown=toolwall-user:toolwall --from=production-deps /app/node_modules ./node_modules
+COPY --chown=toolwall-user:toolwall --from=builder /app/dist ./dist
+COPY --chown=toolwall-user:toolwall --from=builder /app/ui/dist ./ui/dist
+
+USER toolwall-user
 
 EXPOSE 3000
 EXPOSE 9090
@@ -50,4 +64,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=5 \
   CMD node -e "fetch('http://127.0.0.1:3000/health').then((res) => process.exit(res.ok ? 0 : 1)).catch(() => process.exit(1))"
 
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["npm", "start"]
+CMD ["node", "dist/index.js"]

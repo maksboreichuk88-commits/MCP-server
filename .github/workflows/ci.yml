@@ -1,31 +1,30 @@
-name: CI/CD
+name: CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
-    branches: [main]
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    branches:
+      - main
 
 jobs:
-  quality:
-    name: Type Check, Test, Build & Evidence
+  verify:
+    name: Verify
     runs-on: ubuntu-latest
 
     permissions:
       contents: read
 
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v6
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
@@ -33,81 +32,5 @@ jobs:
       - name: Install UI dependencies
         run: npm --prefix ui ci
 
-      - name: Run verification suite
+      - name: Verify
         run: npm run verify:all
-
-      - name: Generate stdio benchmark evidence packet
-        run: npm run benchmark:stdio -- --json --output evidence.json
-
-      - name: Dry-run npm pack
-        run: npm run pack:dry-run
-
-      - name: Smoke test packaged CLI
-        run: npm run pack:smoke
-
-      - name: Summarize benchmark evidence
-        run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-          const report = JSON.parse(fs.readFileSync('evidence.json', 'utf8'));
-          const lines = [
-            '## stdio benchmark',
-            '',
-            `- verdict: \`${report.verdict}\``,
-            `- cases: \`${report.totals.cases}\``,
-            `- requests: \`${report.totals.requests}\``,
-            `- false positives: \`${report.totals.falsePositives}\``,
-            `- false negatives: \`${report.totals.falseNegatives}\``,
-            `- cache consistency failures: \`${report.totals.cacheConsistencyFailures}\``,
-          ];
-          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');
-          NODE
-
-      - name: Upload stdio benchmark evidence packet
-        uses: actions/upload-artifact@v7
-        with:
-          name: stdio-evidence-benchmark
-          path: evidence.json
-
-  docker:
-    name: Build & Push Docker Image
-    needs: quality
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Build and Push
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max

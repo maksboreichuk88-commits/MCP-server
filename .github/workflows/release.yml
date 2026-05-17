@@ -1,0 +1,40 @@
+name: Release Workspaces
+
+on:
+  push:
+    tags:
+      - 'v*'
+  release:
+    types:
+      - created
+
+jobs:
+  publish-workspaces:
+    name: Publish npm Workspaces
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.actor != 'github-actions[bot]'
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build workspaces
+        run: npm run build --workspaces --if-present
+
+      - name: Publish workspaces
+        run: npm publish --workspaces --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
