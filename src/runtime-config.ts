@@ -1,13 +1,20 @@
-import { parseIntEnv, SECURITY_DEFAULTS } from './security-constants.js';
+import {
+  parseIntEnv,
+  resolveWebhookUrl,
+  SECURITY_DEFAULTS,
+} from './security-constants.js';
 
 export interface ProxyRuntimeConfig {
   adminPort: number;
   cacheTtlSeconds: number;
   targetTimeoutMs: number;
+  webhookUrl?: string;
 }
 
 export const resolveProxyRuntimeConfig = (env: NodeJS.ProcessEnv): ProxyRuntimeConfig => {
-  return {
+  const webhookUrl = resolveWebhookUrl(env);
+
+  const config: ProxyRuntimeConfig = {
     adminPort: parseIntEnv(env['MCP_ADMIN_PORT'] ?? env['ADMIN_PORT'], {
       fallback: 9090,
       min: 1,
@@ -24,4 +31,10 @@ export const resolveProxyRuntimeConfig = (env: NodeJS.ProcessEnv): ProxyRuntimeC
       max: 300000,
     }),
   };
+
+  if (webhookUrl) {
+    config.webhookUrl = webhookUrl;
+  }
+
+  return config;
 };

@@ -33,4 +33,25 @@ describe('resolveProxyRuntimeConfig', () => {
       targetTimeoutMs: 45000,
     });
   });
+
+  it('preserves a valid optional webhook URL', () => {
+    expect(resolveProxyRuntimeConfig({
+      MCP_WEBHOOK_URL: 'https://hooks.example/security-alerts',
+    })).toEqual({
+      adminPort: 9090,
+      cacheTtlSeconds: 300,
+      targetTimeoutMs: 30000,
+      webhookUrl: 'https://hooks.example/security-alerts',
+    });
+  });
+
+  it('ignores invalid webhook URLs', () => {
+    expect(resolveProxyRuntimeConfig({
+      MCP_WEBHOOK_URL: 'file:///tmp/hook',
+    })).toEqual({
+      adminPort: 9090,
+      cacheTtlSeconds: 300,
+      targetTimeoutMs: 30000,
+    });
+  });
 });

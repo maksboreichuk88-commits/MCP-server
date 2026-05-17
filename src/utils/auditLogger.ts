@@ -1,9 +1,32 @@
 import fs from 'fs';
 import path from 'path';
 import { createSecurityLogStore, type SecurityLogStore } from '../cache/l2-cache.js';
-import { parseIntEnv, resolveSnippetMaxLength, SECURITY_DEFAULTS } from '../security-constants.js';
+import {
+  parseIntEnv,
+  resolveSnippetMaxLength,
+  resolveWebhookUrl,
+  SECURITY_DEFAULTS,
+} from '../security-constants.js';
 
 const logFilePath = path.join(process.cwd(), 'audit.log');
+const WEBHOOK_ALERT_TOKENS = [
+  'AUTH_FAILURE',
+  'BLOCK',
+  'CROSS_TOOL_HIJACK',
+  'DENY',
+  'EPISTEMIC',
+  'HARD_HALT',
+  'MISSING_SCOPE',
+  'PREFLIGHT_NOT_FOUND',
+  'PREFLIGHT_REPLAY_BLOCKED',
+  'PREFLIGHT_REQUIRED',
+  'PREFLIGHT_VALIDATION_ERROR',
+  'RATE_LIMIT_EXCEEDED',
+  'SCHEMA_VALIDATION_FAILED',
+  'SHADOWLEAK',
+  'TRUST_GATE',
+  'UNAUTHORIZED',
+];
 
 const logStream = fs.createWriteStream(logFilePath, { flags: 'a' });
 let auditFileBackpressure = false;
@@ -198,6 +221,45 @@ const toSnippet = (details: Record<string, unknown>): string | undefined => {
   return undefined;
 };
 
+const isWebhookAlertEntry = (entry: AuditEvent): boolean => {
+  const code = typeof entry['code'] === 'string' ? entry['code'] : '';
+  const action = `${entry.event} ${code}`.toUpperCase();
+  return WEBHOOK_ALERT_TOKENS.some((token) => action.includes(token));
+};
+
+export const dispatchWebhook = async (entry: AuditEvent): Promise<void> => {
+  try {
+    const webhookUrl = resolveWebhookUrl();
+    if (!webhookUrl || !isWebhookAlertEntry(entry) || typeof fetch !== 'function') {
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => {
+      controller.abort();
+    }, SECURITY_DEFAULTS.webhookTimeoutMs);
+
+    if (typeof timeout === 'object') {
+      timeout.unref();
+    }
+
+    try {
+      await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: safeJsonStringify(entry),
+        signal: controller.signal,
+      });
+    } catch {
+      // Observability failures must never affect proxy fail-closed behavior.
+    } finally {
+      clearTimeout(timeout);
+    }
+  } catch {
+    // Keep webhook dispatch strictly best-effort.
+  }
+};
+
 const getSecurityLogStore = (): SecurityLogStore => {
   if (!securityLogStore) {
     securityLogStore = createSecurityLogStore({
@@ -253,9 +315,9 @@ const writeAuditStderr = (entry: string): void => {
   } catch {}
 };
 
-const recordBlockedRequest = (timestamp: string, event: string, details: Record<string, unknown>): void => {
+const recordBlockedRequest = (timestamp: string, event: string, details: Record<string, unknown>): string | null => {
   const code = inferBlockedCode(event, details);
-  if (!code) return;
+  if (!code) return null;
 
   blockedMetricsState.total += 1;
   blockedMetricsState.lastBlockedAt = timestamp;
@@ -276,6 +338,7 @@ const recordBlockedRequest = (timestamp: string, event: string, details: Record<
   }
 
   recordSecurityLog(timestamp, event, code, details);
+  return code;
 };
 
 export const auditLog = (event: string, details: Record<string, unknown>): void => {
@@ -283,7 +346,8 @@ export const auditLog = (event: string, details: Record<string, unknown>): void 
   const entry = createEntry(timestamp, event, details) + '\n';
   writeAuditFile(entry);
   writeAuditStderr(entry);
-  recordBlockedRequest(timestamp, event, details);
+  const code = recordBlockedRequest(timestamp, event, details);
+  void dispatchWebhook({ timestamp, event, ...details, ...(code ? { code } : {}) });
 };
 
 export const writeAuditLog = (event: string, details: Record<string, unknown>): void => {

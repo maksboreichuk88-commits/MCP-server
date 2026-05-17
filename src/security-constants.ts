@@ -58,6 +58,7 @@ export const SECURITY_DEFAULTS = {
   sanitizerMaxArrayItems: 1000,
   sanitizerMaxObjectKeys: 1000,
   sanitizerMaxStringLength: 1024 * 1024,
+  webhookTimeoutMs: 2000,
 } as const;
 
 export const resolveHttpJsonLimit = (env: NodeJS.ProcessEnv = process.env): string => {
@@ -76,4 +77,19 @@ export const resolveSnippetMaxLength = (env: NodeJS.ProcessEnv = process.env): n
     min: 32,
     max: 4096,
   });
+};
+
+export const resolveWebhookUrl = (env: NodeJS.ProcessEnv = process.env): string | undefined => {
+  const raw = env['MCP_WEBHOOK_URL']?.trim();
+  if (!raw) return undefined;
+
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return undefined;
+    }
+    return parsed.toString();
+  } catch {
+    return undefined;
+  }
 };
