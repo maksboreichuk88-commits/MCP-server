@@ -78,12 +78,26 @@ export interface BlockedRequestMetrics {
   recent: BlockedRequestSample[];
 }
 
+export interface WebhookAlertMetrics {
+  alertsTriggeredTotal: number;
+  dispatchFailuresTotal: number;
+  lastDispatchAt: string | null;
+  lastFailureAt: string | null;
+}
+
 const blockedMetricsState = {
   total: 0,
   lastBlockedAt: null as string | null,
   byCode: new Map<string, number>(),
   recent: [] as BlockedRequestSample[],
   recentLimit: SECURITY_DEFAULTS.blockedRecentLimit,
+};
+
+const webhookAlertMetricsState: WebhookAlertMetrics = {
+  alertsTriggeredTotal: 0,
+  dispatchFailuresTotal: 0,
+  lastDispatchAt: null,
+  lastFailureAt: null,
 };
 
 let securityLogStore: SecurityLogStore | null = null;
@@ -234,6 +248,10 @@ export const dispatchWebhook = async (entry: AuditEvent): Promise<void> => {
       return;
     }
 
+    const dispatchTimestamp = typeof entry.timestamp === 'string' ? entry.timestamp : new Date().toISOString();
+    webhookAlertMetricsState.alertsTriggeredTotal += 1;
+    webhookAlertMetricsState.lastDispatchAt = dispatchTimestamp;
+
     const controller = new AbortController();
     const timeout = setTimeout(() => {
       controller.abort();
@@ -251,6 +269,8 @@ export const dispatchWebhook = async (entry: AuditEvent): Promise<void> => {
         signal: controller.signal,
       });
     } catch {
+      webhookAlertMetricsState.dispatchFailuresTotal += 1;
+      webhookAlertMetricsState.lastFailureAt = new Date().toISOString();
       // Observability failures must never affect proxy fail-closed behavior.
     } finally {
       clearTimeout(timeout);
@@ -361,6 +381,10 @@ export const getBlockedRequestMetrics = (): BlockedRequestMetrics => ({
   recent: [...blockedMetricsState.recent],
 });
 
+export const getWebhookAlertMetrics = (): WebhookAlertMetrics => ({
+  ...webhookAlertMetricsState,
+});
+
 export const getRecentSecurityEvents = (limit = 5): SecurityEvent[] => {
   try {
     return getSecurityLogStore().listRecent(limit).map((event) => ({
@@ -387,6 +411,13 @@ export const resetBlockedRequestMetrics = (): void => {
   blockedMetricsState.lastBlockedAt = null;
   blockedMetricsState.byCode.clear();
   blockedMetricsState.recent.length = 0;
+};
+
+export const resetWebhookAlertMetrics = (): void => {
+  webhookAlertMetricsState.alertsTriggeredTotal = 0;
+  webhookAlertMetricsState.dispatchFailuresTotal = 0;
+  webhookAlertMetricsState.lastDispatchAt = null;
+  webhookAlertMetricsState.lastFailureAt = null;
 };
 
 export const auditLogWithSIEM = auditLog;

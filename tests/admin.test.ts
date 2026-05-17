@@ -44,6 +44,7 @@ describe('admin blocked-request metrics', () => {
   });
 
   beforeEach(async () => {
+    delete process.env.MCP_WEBHOOK_URL;
     clearRoutes();
     clearPreflightRegistries();
     clearColorSessions();
@@ -92,6 +93,7 @@ describe('admin blocked-request metrics', () => {
   });
 
   afterEach(async () => {
+    delete process.env.MCP_WEBHOOK_URL;
     resetBlockedRequestMetrics();
     resetRuntimeMetrics();
     clearTenantRateLimitConfigs();
@@ -129,10 +131,15 @@ describe('admin blocked-request metrics', () => {
       })
       .expect(403);
 
+    process.env.MCP_WEBHOOK_URL = 'https://hooks.example/security-alerts';
+
     const response = await request(adminApp)
       .get('/stats')
       .expect(200);
 
+    expect(response.body.webhook).toEqual(expect.objectContaining({
+      configured: true,
+    }));
     expect(response.body.blockedRequests.total).toBeGreaterThanOrEqual(1);
     expect(response.body.blockedRequests.byCode).toEqual(
       expect.arrayContaining([

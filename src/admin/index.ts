@@ -10,8 +10,14 @@ import { configureTenantRateLimit, getRateLimitStats, removeTenantRateLimit } fr
 import { getAllCircuitBreakerStats } from '../proxy/circuit-breaker.js';
 import { clearRoutes, getRegisteredRoutes, registerRoute, removeRoute } from '../proxy/router.js';
 import { getGatewayTargetStatuses } from '../gateway-config.js';
-import { resolveHttpJsonLimit, SECURITY_DEFAULTS } from '../security-constants.js';
-import { auditLog, clearSecurityEvents, getBlockedRequestMetrics, getRecentSecurityEvents } from '../utils/auditLogger.js';
+import { resolveHttpJsonLimit, resolveWebhookUrl, SECURITY_DEFAULTS } from '../security-constants.js';
+import {
+  auditLog,
+  clearSecurityEvents,
+  getBlockedRequestMetrics,
+  getRecentSecurityEvents,
+  getWebhookAlertMetrics,
+} from '../utils/auditLogger.js';
 
 const executableDir = typeof process !== 'undefined' && 'isBun' in process && process.isBun ? path.dirname(process.execPath) : process.cwd();
 const adminUiPath = path.join(executableDir, 'ui', 'dist');
@@ -79,6 +85,7 @@ const createStatsPayload = () => {
     .filter((item) => astEgressFilterCodes.has(item.code))
     .reduce((total, item) => total + item.count, 0);
   const shadowLeakDetectionsTotal = blockedRequests.byCode.find((item) => item.code === 'SHADOWLEAK_DETECTED')?.count ?? 0;
+  const webhookUrl = resolveWebhookUrl();
 
   return {
     routes: getRegisteredRoutes().size,
@@ -97,6 +104,10 @@ const createStatsPayload = () => {
       astEgressFilterTriggersTotal,
       shadowLeakDetectionsTotal,
       blockedRequestsTotal,
+    },
+    webhook: {
+      configured: Boolean(webhookUrl),
+      ...getWebhookAlertMetrics(),
     },
   };
 };
@@ -363,4 +374,3 @@ export const stopAdminServer = (): Promise<void> => {
     }
   });
 };
-

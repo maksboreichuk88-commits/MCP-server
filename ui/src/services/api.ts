@@ -32,6 +32,11 @@ export const api = {
 
   getStats: fetchAdminStats,
 
+  async getWebhookStatus(): Promise<AdminStatsResponse['webhook']> {
+    const stats = await fetchAdminStats();
+    return stats.webhook;
+  },
+
   async getRoutes(): Promise<{ routes: AdminRoute[]; total: number }> {
     const res = await fetch(`${API_BASE}/routes`);
     if (!res.ok) throw new Error('Failed to fetch routes');

@@ -115,6 +115,12 @@ export default function Dashboard() {
   }
 
   const cache = stats.cache;
+  const webhook = stats.webhook;
+  const webhookActive = webhook.configured;
+  const webhookStatusClass = webhookActive
+    ? 'border-green-500/20 bg-green-500/10 text-green-300'
+    : 'border-gray-700 bg-gray-800/80 text-gray-400';
+  const webhookStatusLabel = webhookActive ? 'ACTIVE' : 'INACTIVE';
   const circuitSummary = stats.circuitBreakers.reduce<Record<CircuitBreakerStats['state'], number>>(
     (summary, breaker) => {
       summary[breaker.state] += 1;
@@ -156,7 +162,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        <main className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <main className="grid grid-cols-1 gap-5 lg:grid-cols-4">
           <Card className="border-gray-800 bg-gray-900/70">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
@@ -188,6 +194,54 @@ export default function Dashboard() {
                 </span>
                 <span className="font-semibold text-white">{formatNumber(stats.routes)}</span>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            className={`border-gray-800 bg-gray-900/70 ${
+              webhookActive ? 'shadow-[0_0_28px_rgba(34,197,94,0.08)]' : ''
+            }`}
+          >
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-3 text-base">
+                <span className="flex items-center gap-2">
+                  <Activity className={`h-5 w-5 ${webhookActive ? 'text-green-400' : 'text-gray-500'}`} />
+                  Webhook Alerts
+                </span>
+                <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${webhookStatusClass}`}>
+                  {webhookStatusLabel}
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-lg bg-gray-950/70 p-4">
+                <p className="text-xs uppercase tracking-wide text-gray-500">Security incidents alerted</p>
+                <p className={`mt-2 text-3xl font-bold ${webhookActive ? 'text-green-300' : 'text-gray-300'}`}>
+                  {formatNumber(webhook.alertsTriggeredTotal)}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  {webhookActive ? 'Dispatched to MCP_WEBHOOK_URL' : 'Set MCP_WEBHOOK_URL to enable dispatch'}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-lg bg-gray-950/60 p-3">
+                  <p className="text-xs text-gray-500">Failures</p>
+                  <p className="mt-1 text-xl font-semibold text-red-200">
+                    {formatNumber(webhook.dispatchFailuresTotal)}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-gray-950/60 p-3">
+                  <p className="text-xs text-gray-500">Last dispatch</p>
+                  <p className="mt-1 truncate text-sm font-medium text-gray-200">
+                    {webhook.lastDispatchAt ? formatTimestamp(webhook.lastDispatchAt) : 'Never'}
+                  </p>
+                </div>
+              </div>
+              {webhook.lastFailureAt && (
+                <p className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-200">
+                  Last delivery failure: {formatTimestamp(webhook.lastFailureAt)}
+                </p>
+              )}
             </CardContent>
           </Card>
 

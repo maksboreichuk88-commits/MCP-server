@@ -63,6 +63,14 @@ export interface SecurityStats {
   blockedRequestsTotal: number;
 }
 
+export interface WebhookObservabilityStats {
+  configured: boolean;
+  alertsTriggeredTotal: number;
+  dispatchFailuresTotal: number;
+  lastDispatchAt: string | null;
+  lastFailureAt: string | null;
+}
+
 export interface SecurityEvent {
   timestamp: string;
   reason: string;
@@ -89,6 +97,7 @@ export interface AdminStatsResponse {
   targetStatuses: GatewayTargetStatus[];
   throughput: ThroughputStats;
   security: SecurityStats;
+  webhook: WebhookObservabilityStats;
 }
 
 export type ProxyStats = AdminStatsResponse;

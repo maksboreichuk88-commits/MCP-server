@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import {
   auditLog,
   closeSecurityLogStore,
+  getWebhookAlertMetrics,
   resetBlockedRequestMetrics,
+  resetWebhookAlertMetrics,
 } from '../src/utils/auditLogger.js';
 
 const mutableGlobal = globalThis as typeof globalThis & { fetch?: typeof fetch };
@@ -22,6 +24,7 @@ describe('webhook audit alerts', () => {
   afterEach(() => {
     delete process.env.MCP_WEBHOOK_URL;
     resetBlockedRequestMetrics();
+    resetWebhookAlertMetrics();
     closeSecurityLogStore();
     jest.clearAllMocks();
 
@@ -47,6 +50,11 @@ describe('webhook audit alerts', () => {
     await flushWebhookDispatch();
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(getWebhookAlertMetrics()).toEqual(expect.objectContaining({
+      alertsTriggeredTotal: 1,
+      dispatchFailuresTotal: 0,
+      lastDispatchAt: expect.any(String),
+    }));
     const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
     expect(url).toBe('https://hooks.example/security-alerts');
     expect(init.method).toBe('POST');
@@ -72,6 +80,12 @@ describe('webhook audit alerts', () => {
     await flushWebhookDispatch();
 
     expect(mockFetch).not.toHaveBeenCalled();
+    expect(getWebhookAlertMetrics()).toEqual({
+      alertsTriggeredTotal: 0,
+      dispatchFailuresTotal: 0,
+      lastDispatchAt: null,
+      lastFailureAt: null,
+    });
   });
 
   it('does not crash when webhook delivery fails', async () => {
@@ -93,5 +107,11 @@ describe('webhook audit alerts', () => {
     await flushWebhookDispatch();
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(getWebhookAlertMetrics()).toEqual(expect.objectContaining({
+      alertsTriggeredTotal: 1,
+      dispatchFailuresTotal: 1,
+      lastDispatchAt: expect.any(String),
+      lastFailureAt: expect.any(String),
+    }));
   });
 });
