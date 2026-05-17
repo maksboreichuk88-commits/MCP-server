@@ -1,10 +1,14 @@
 {
   "name": "@maksiph14/toolwall",
   "version": "2.2.8",
+  "workspaces": [
+    "packages/*"
+  ],
   "description": "Fail-closed stdio firewall for risky local MCP JSON-RPC tool calls",
   "main": "dist/lib.js",
   "exports": {
     ".": "./dist/lib.js",
+    "./middleware/ast-egress-filter": "./dist/middleware/ast-egress-filter.js",
     "./package.json": "./package.json"
   },
   "files": [
